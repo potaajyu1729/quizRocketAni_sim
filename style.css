@@ -2926,6 +2926,390 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
 }
 
+/* Player setup and result-only score reveal */
+.score-strip {
+  display: none;
+}
+
+.app-shell[data-phase="result"] .score-strip {
+  display: inline;
+}
+
+.crew-character.is-player {
+  filter: drop-shadow(0 0 7px rgba(201, 247, 101, .8));
+}
+
+.crew-character.is-player::before {
+  content: "YOU";
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 108%;
+  padding: 3px 4px;
+  border-radius: 4px;
+  color: #102016;
+  background: var(--lime);
+  font: 800 5px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .08em;
+  transform: translateX(-50%);
+}
+
+.player-setup {
+  margin-top: clamp(11px, 2vh, 18px);
+  padding: 10px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(125, 232, 237, .22);
+  border-radius: 10px;
+  background: rgba(5, 15, 27, .42);
+}
+
+.player-setup-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
+.player-setup-heading strong {
+  color: var(--lime);
+  font: 700 9px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .1em;
+}
+
+.player-setup-heading small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.player-setup .profile-name-field input {
+  height: 44px;
+}
+
+.player-setup .avatar-option {
+  min-height: 44px;
+}
+
+.player-setup .avatar-option img {
+  width: 35px;
+  height: 35px;
+}
+
+.ready-player {
+  margin-top: clamp(18px, 3.5vh, 30px);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid rgba(125, 232, 237, .22);
+  border-radius: 10px;
+  background: rgba(7, 17, 31, .42);
+  text-align: left;
+}
+
+.ready-player img {
+  width: clamp(48px, 8vh, 64px);
+  height: clamp(48px, 8vh, 64px);
+  object-fit: contain;
+}
+
+.ready-player > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.ready-player small {
+  color: var(--cyan);
+  font: 700 7px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .12em;
+}
+
+.ready-player strong {
+  overflow: hidden;
+  font-size: clamp(14px, 2vw, 19px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flight-data-seal {
+  margin-top: clamp(10px, 2vh, 17px);
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 9px;
+  color: var(--lime);
+  background: var(--lime-soft);
+  text-align: left;
+}
+
+.flight-data-seal > span {
+  flex: none;
+  font-size: 20px;
+}
+
+.flight-data-seal > div {
+  display: grid;
+  gap: 3px;
+}
+
+.flight-data-seal strong {
+  font-size: 10px;
+}
+
+.flight-data-seal small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.card-identity {
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid rgba(125, 232, 237, .22);
+  border-radius: 11px;
+  background: rgba(5, 15, 27, .5);
+  text-align: left;
+}
+
+.card-identity > img {
+  width: 68px;
+  height: 68px;
+  flex: none;
+  object-fit: contain;
+}
+
+.card-identity > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.card-identity small {
+  color: var(--cyan);
+  font: 700 7px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .11em;
+}
+
+.card-identity strong {
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-identity em {
+  color: var(--lime);
+  font: 700 8px/1.3 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-style: normal;
+}
+
+.card-save-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.65;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .app-shell[data-phase="briefing"] .cockpit {
+    grid-template-rows: minmax(0, 1fr) clamp(355px, 66vh, 385px);
+  }
+
+  .briefing-panel {
+    padding: 9px 12px;
+  }
+
+  .briefing-panel .mission-facts {
+    margin-top: 6px;
+  }
+
+  .briefing-panel .mission-facts > div {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .player-setup {
+    margin-top: 6px;
+    padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .player-setup-heading small {
+    font-size: 7px;
+  }
+
+  .player-setup .profile-name-field {
+    gap: 3px;
+  }
+
+  .player-setup .profile-name-field input {
+    height: 44px;
+  }
+
+  .player-setup .avatar-field legend {
+    margin-bottom: 3px;
+  }
+
+  .player-setup .avatar-option {
+    min-height: 44px;
+  }
+
+  .player-setup .avatar-option img {
+    width: 33px;
+    height: 33px;
+  }
+
+  .briefing-hint {
+    min-height: 29px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .ready-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .ready-player {
+    margin-top: 10px;
+    padding: 7px 9px;
+  }
+
+  .ready-player img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .flight-data-seal {
+    margin-top: 8px;
+    padding: 8px 9px;
+  }
+
+  .card-identity {
+    padding: 7px 9px;
+  }
+
+  .card-identity > img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .card-identity strong {
+    font-size: 14px;
+  }
+}
+
+@media (max-height: 535px) {
+  .app-shell[data-phase="briefing"] .flight-deck {
+    display: none;
+  }
+
+  .app-shell[data-phase="briefing"] .cockpit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .app-shell[data-phase="briefing"] .mission-panel {
+    width: min(100%, 920px);
+    height: 100%;
+    margin-inline: auto;
+  }
+}
+
+@media (max-height: 535px) and (min-width: 480px) {
+  .briefing-panel {
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, .8fr) minmax(300px, 1.2fr);
+    grid-template-rows: auto minmax(0, 1fr) 44px;
+    gap: 6px 14px;
+  }
+
+  .briefing-panel .panel-heading {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .briefing-panel .panel-heading h1 {
+    margin-top: 4px;
+    font-size: 20px;
+  }
+
+  .briefing-panel .mission-facts {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .briefing-panel .player-setup {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    margin-top: 0;
+  }
+
+  .briefing-panel .briefing-hint {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0;
+  }
+
+  .briefing-panel .launch-button {
+    grid-column: 2;
+    grid-row: 3;
+    min-height: 44px;
+    margin-top: 0;
+  }
+}
+
+@media (max-height: 360px) and (min-width: 480px) {
+  .briefing-panel {
+    grid-template-columns: minmax(135px, .65fr) minmax(270px, 1.35fr);
+    grid-template-rows: minmax(0, 1fr) 44px;
+  }
+
+  .briefing-panel .panel-heading {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+  }
+
+  .briefing-panel .mission-facts,
+  .briefing-panel .briefing-hint {
+    display: none;
+  }
+
+  .briefing-panel .player-setup {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .briefing-panel .launch-button {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .app-shell[data-phase="ready"] .flight-deck {
+    display: none;
+  }
+
+  .app-shell[data-phase="ready"] .cockpit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
 /* Dedicated quiz and crew-card screens */
 .app-shell[data-phase="quiz"] {
   grid-template-rows: minmax(0, 1fr);

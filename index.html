@@ -75,16 +75,16 @@
           </div>
 
           <div class="boarding-crew" id="boarding-crew" aria-hidden="true">
-            <div class="crew-character crew-character--red">
+            <div class="crew-character crew-character--red" data-avatar="red">
               <span class="crew-body"><i class="crew-face"></i></span>
             </div>
-            <div class="crew-character crew-character--blue">
+            <div class="crew-character crew-character--blue" data-avatar="blue">
               <span class="crew-body"><i class="crew-face"></i></span>
             </div>
-            <div class="crew-character crew-character--yellow">
+            <div class="crew-character crew-character--yellow" data-avatar="yellow">
               <span class="crew-body"><i class="crew-face"></i></span>
             </div>
-            <div class="crew-character crew-character--green">
+            <div class="crew-character crew-character--green is-player" data-avatar="green">
               <span class="crew-body"><i class="crew-face"></i></span>
             </div>
           </div>
@@ -153,15 +153,34 @@
             <div><strong>04</strong><span>CREW</span><small>4人搭乗</small></div>
           </div>
 
-          <div class="score-guide">
-            <div>
-              <span class="guide-icon" aria-hidden="true">↟</span>
-              <span><strong>出力強度</strong><small>難易度を含む正答率</small></span>
+          <div class="player-setup">
+            <div class="player-setup-heading">
+              <strong>PLAYER SETUP</strong>
+              <small>名前とクルーカラーを決めよう</small>
             </div>
-            <div>
-              <span class="guide-icon" aria-hidden="true">◎</span>
-              <span><strong>安全性</strong><small>6分野のバランス平均</small></span>
-            </div>
+
+            <label class="profile-name-field" for="profile-name">
+              <span>DISPLAY NAME <small>プレイヤー名</small></span>
+              <input id="profile-name" type="text" maxlength="20" autocomplete="name" value="CREW MEMBER">
+            </label>
+
+            <fieldset class="avatar-field">
+              <legend>PLAYER COLOR</legend>
+              <div class="avatar-options">
+                <button class="avatar-option" type="button" data-avatar="red" aria-label="赤のクルー" aria-pressed="false">
+                  <img src="./assets/crew-red.svg" alt="">
+                </button>
+                <button class="avatar-option" type="button" data-avatar="blue" aria-label="青のクルー" aria-pressed="false">
+                  <img src="./assets/crew-blue.svg" alt="">
+                </button>
+                <button class="avatar-option" type="button" data-avatar="yellow" aria-label="黄のクルー" aria-pressed="false">
+                  <img src="./assets/crew-yellow.svg" alt="">
+                </button>
+                <button class="avatar-option is-selected" type="button" data-avatar="green" aria-label="緑のクルー" aria-pressed="true">
+                  <img src="./assets/crew-green.svg" alt="">
+                </button>
+              </div>
+            </fieldset>
           </div>
 
           <div class="threshold-hint briefing-hint">
@@ -208,28 +227,20 @@
 
         <section class="mode-panel ready-panel" id="ready-panel" hidden>
           <div class="ready-heading">
-            <span class="ready-icon" aria-hidden="true">✓</span>
-            <p class="eyebrow">FLIGHT DATA READY</p>
-            <h2>データ完成！</h2>
-            <p>クイズで集めたエネルギーをロケットへ転送しました。</p>
+            <span class="ready-icon" aria-hidden="true">▲</span>
+            <p class="eyebrow">READY FOR LAUNCH</p>
+            <h2>発射準備OK！</h2>
+            <p>回答データをロケットへ格納しました。</p>
           </div>
 
-          <div class="computed-metrics">
-            <div>
-              <span>出力強度<small>WEIGHTED ACCURACY</small></span>
-              <strong><b id="ready-output">0</b>%</strong>
-            </div>
-            <div>
-              <span>安全性<small>FIELD BALANCE</small></span>
-              <strong><b id="ready-safety">0</b>%</strong>
-            </div>
+          <div class="ready-player">
+            <img id="ready-player-avatar" src="./assets/crew-green.svg" alt="選択した緑のクルー">
+            <span><small>PLAYER</small><strong id="ready-player-name">CREW MEMBER</strong></span>
           </div>
 
-          <div class="balance-list" id="balance-list" aria-label="6分野の到達度"></div>
-
-          <div class="threshold-hint ready-hint" id="ready-hint">
-            <span class="threshold-icon" aria-hidden="true">◇</span>
-            <span><strong id="ready-message">フライトコースを計算しました</strong><small>難しい問題にはボーナス係数を反映</small></span>
+          <div class="flight-data-seal">
+            <span aria-hidden="true">◇</span>
+            <div><strong>フライトデータ格納完了</strong><small>採点値は飛行後のリザルトで表示します</small></div>
           </div>
 
           <button class="launch-button" id="launch-button" type="button">
@@ -290,8 +301,8 @@
         <section class="mode-panel card-panel" id="card-panel" hidden aria-live="polite">
           <header class="card-heading">
             <p class="eyebrow">CREW PROFILE CARD</p>
-            <h2>自己紹介カードをつくろう</h2>
-            <p>表示名とクルーアイコンを選ぶと、フライトデータ入りのカードが完成します。</p>
+            <h2>自己紹介カード完成！</h2>
+            <p>スタート時に選んだプレイヤー情報とフライトデータをまとめました。</p>
           </header>
 
           <div class="profile-card-preview">
@@ -301,28 +312,16 @@
           </div>
 
           <div class="card-controls">
-            <label class="profile-name-field" for="profile-name">
-              <span>DISPLAY NAME <small>カードに載せる名前</small></span>
-              <input id="profile-name" type="text" maxlength="20" autocomplete="name" value="CREW MEMBER">
-            </label>
+            <div class="card-identity">
+              <img id="card-crew-avatar" src="./assets/crew-green.svg" alt="緑のクルー">
+              <span>
+                <small>CREW PROFILE</small>
+                <strong id="card-crew-name">CREW MEMBER</strong>
+                <em id="card-crew-role">INTERFACE CREATOR</em>
+              </span>
+            </div>
 
-            <fieldset class="avatar-field">
-              <legend>CREW ICON</legend>
-              <div class="avatar-options">
-                <button class="avatar-option" type="button" data-avatar="red" aria-label="赤のクルー" aria-pressed="false">
-                  <img src="./assets/crew-red.svg" alt="">
-                </button>
-                <button class="avatar-option" type="button" data-avatar="blue" aria-label="青のクルー" aria-pressed="false">
-                  <img src="./assets/crew-blue.svg" alt="">
-                </button>
-                <button class="avatar-option" type="button" data-avatar="yellow" aria-label="黄のクルー" aria-pressed="false">
-                  <img src="./assets/crew-yellow.svg" alt="">
-                </button>
-                <button class="avatar-option is-selected" type="button" data-avatar="green" aria-label="緑のクルー" aria-pressed="true">
-                  <img src="./assets/crew-green.svg" alt="">
-                </button>
-              </div>
-            </fieldset>
+            <p class="card-save-copy">選んだクルーアイコンと今回のフライト記録を、PNGカードとして保存できます。</p>
 
             <div class="card-actions">
               <button class="save-card-button" id="save-card-button" type="button">

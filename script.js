@@ -29,6 +29,13 @@ const avatarColors = {
   green: { body: "#51d27b", glow: "rgba(81,210,123,.24)" }
 };
 
+const avatarLabels = {
+  red: "赤",
+  blue: "青",
+  yellow: "黄",
+  green: "緑"
+};
+
 const rawQuestions = [
   { category: "フロントエンド", weight: 1, question: '<button type="＿＿＿">送信</button>', choices: ["submit", "click", "send", "form-submit"], answer: 0, explanation: "formを送信するbuttonのtypeにはsubmitを使います。" },
   { category: "フロントエンド", weight: 1, question: '<label ＿＿＿="email">メール</label>\n<input id="email" type="email">', choices: ["for", "target", "name", "control"], answer: 0, explanation: "labelのforとinputのidを同じ値にすると、入力欄を関連付けられます。" },
@@ -106,11 +113,8 @@ const elements = {
   nextButton: document.querySelector("#next-button"),
   nextLabel: document.querySelector("#next-label"),
   quizProgressBar: document.querySelector("#quiz-progress-bar"),
-  readyOutput: document.querySelector("#ready-output"),
-  readySafety: document.querySelector("#ready-safety"),
-  readyHint: document.querySelector("#ready-hint"),
-  readyMessage: document.querySelector("#ready-message"),
-  balanceList: document.querySelector("#balance-list"),
+  readyPlayerAvatar: document.querySelector("#ready-player-avatar"),
+  readyPlayerName: document.querySelector("#ready-player-name"),
   flightTitle: document.querySelector("#flight-title"),
   flightDescription: document.querySelector("#flight-description"),
   resultIcon: document.querySelector("#result-icon"),
@@ -127,7 +131,10 @@ const elements = {
   avatarOptions: [...document.querySelectorAll(".avatar-option")],
   saveCardButton: document.querySelector("#save-card-button"),
   saveCardLabel: document.querySelector("#save-card-label"),
-  cardBackButton: document.querySelector("#card-back-button")
+  cardBackButton: document.querySelector("#card-back-button"),
+  cardCrewAvatar: document.querySelector("#card-crew-avatar"),
+  cardCrewName: document.querySelector("#card-crew-name"),
+  cardCrewRole: document.querySelector("#card-crew-role")
 };
 
 const panelNames = ["briefing", "quiz", "ready", "flight", "result", "card"];
@@ -221,6 +228,23 @@ function categoryShortName(category) {
   return categories.find((item) => item.name === category)?.short ?? "WEB";
 }
 
+function syncPlayerIdentity() {
+  const displayName = elements.profileName.value.trim() || "CREW MEMBER";
+  const avatarLabel = avatarLabels[selectedAvatar] ?? avatarLabels.green;
+  const avatarPath = `./assets/crew-${selectedAvatar}.svg`;
+
+  elements.readyPlayerAvatar.src = avatarPath;
+  elements.readyPlayerAvatar.alt = `選択した${avatarLabel}のクルー`;
+  elements.readyPlayerName.textContent = displayName;
+  elements.profileButton.querySelector("img").src = avatarPath;
+  elements.cardCrewAvatar.src = avatarPath;
+  elements.cardCrewAvatar.alt = `${avatarLabel}のクルー`;
+  elements.cardCrewName.textContent = displayName;
+  elements.crewCharacters.forEach((character) => {
+    character.classList.toggle("is-player", character.dataset.avatar === selectedAvatar);
+  });
+}
+
 function renderQuestion() {
   const question = questionBank[quizState.current];
   const number = String(quizState.current + 1).padStart(2, "0");
@@ -311,22 +335,6 @@ function calculateQuizMetrics() {
   return { power, safety, categoryScores };
 }
 
-function renderBalanceList(categoryScores) {
-  elements.balanceList.replaceChildren();
-
-  categories.forEach(({ name, short }) => {
-    const score = categoryScores[name];
-    const item = document.createElement("div");
-    item.className = "balance-item";
-    item.innerHTML = `
-      <span><b>${short}</b><small>${name}</small></span>
-      <i><em style="width:${score}%"></em></i>
-      <strong>${score}%</strong>
-    `;
-    elements.balanceList.append(item);
-  });
-}
-
 function showReadyPanel() {
   const metrics = calculateQuizMetrics();
   latestMetrics = {
@@ -334,28 +342,20 @@ function showReadyPanel() {
     categoryScores: { ...metrics.categoryScores }
   };
   missionParameters = { power: metrics.power, stability: metrics.safety };
-  elements.readyOutput.textContent = metrics.power;
-  elements.readySafety.textContent = metrics.safety;
-  elements.outputLive.textContent = metrics.power;
-  elements.safetyLive.textContent = metrics.safety;
-  renderBalanceList(metrics.categoryScores);
-
-  const orbitReady = metrics.power >= OUTPUT_THRESHOLD && metrics.safety >= SAFETY_THRESHOLD;
-  elements.readyHint.classList.toggle("is-ready", orbitReady);
-  elements.readyMessage.textContent = orbitReady
-    ? "軌道到達コースが開きました"
-    : "カラフルなスパークコースが開きました";
+  syncPlayerIdentity();
 
   setState("ready");
   setPhase("ready");
   showPanel("ready");
-  elements.missionStatus.textContent = "DATA READY";
-  elements.trajectoryLabel.textContent = "CALCULATED";
+  elements.missionStatus.textContent = "READY";
+  elements.trajectoryLabel.textContent = "DATA LOCKED";
   elements.engineLabel.textContent = "READY";
   elements.launchButton.focus({ preventScroll: true });
 }
 
 function startQuiz() {
+  if (!elements.profileName.value.trim()) elements.profileName.value = "CREW MEMBER";
+  syncPlayerIdentity();
   resetQuizData();
   resetEffects();
   missionParameters = { power: 0, stability: 0 };
@@ -386,8 +386,14 @@ function prepareCrewBoarding() {
   const stageWidth = stageRect.width;
   const startOffsets = [-0.32, -0.18, 0.18, 0.32];
   const delayStep = prefersReducedMotion.matches ? 0.065 : 0.55;
+  const playerCharacter = elements.crewCharacters.find((character) => character.dataset.avatar === selectedAvatar);
+  const boardingOrder = [
+    ...elements.crewCharacters.filter((character) => character !== playerCharacter),
+    playerCharacter
+  ].filter(Boolean);
 
   elements.crewCharacters.forEach((character, index) => {
+    const boardingIndex = boardingOrder.indexOf(character);
     const characterRect = character.getBoundingClientRect();
     const startX = stageWidth * startOffsets[index];
     const targetWindowY = rocketRect.top - stageRect.top + rocketRect.height * 0.32;
@@ -398,7 +404,7 @@ function prepareCrewBoarding() {
     character.style.setProperty("--crew-start-x", `${startX.toFixed(1)}px`);
     character.style.setProperty("--crew-mid-x", `${(startX * 0.46).toFixed(1)}px`);
     character.style.setProperty("--crew-board-y", `${boardY.toFixed(1)}px`);
-    character.style.setProperty("--crew-delay", `${(index * delayStep).toFixed(3)}s`);
+    character.style.setProperty("--crew-delay", `${(boardingIndex * delayStep).toFixed(3)}s`);
     character.style.setProperty("--crew-lean", `${lean}deg`);
     character.style.setProperty("--crew-lean-back", `${lean * -1}deg`);
   });
@@ -407,7 +413,7 @@ function prepareCrewBoarding() {
   void elements.boardingCrew.offsetWidth;
   elements.boardingCrew.classList.add("is-boarding");
 
-  elements.crewCharacters.forEach((character, index) => {
+  boardingOrder.forEach((character, index) => {
     const progressDelay = prefersReducedMotion.matches
       ? 15 + index * 65
       : 900 + index * 550;
@@ -605,6 +611,11 @@ function drawProfileCard() {
   const accent = avatarColors[selectedAvatar]?.body ?? avatarColors.green.body;
   const values = categories.map(({ name }) => latestMetrics.categoryScores[name] ?? 0);
 
+  elements.cardCrewAvatar.src = `./assets/crew-${selectedAvatar}.svg`;
+  elements.cardCrewAvatar.alt = `${avatarLabels[selectedAvatar] ?? avatarLabels.green}のクルー`;
+  elements.cardCrewName.textContent = displayName;
+  elements.cardCrewRole.textContent = profile.role;
+
   context.clearRect(0, 0, canvas.width, canvas.height);
   const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
   background.addColorStop(0, "#07111f");
@@ -744,7 +755,7 @@ function openProfileCard() {
   elements.trajectoryLabel.textContent = "PERSONAL CARD";
   elements.engineLabel.textContent = "CREATED";
   drawProfileCard();
-  elements.profileName.focus({ preventScroll: true });
+  elements.saveCardButton.focus({ preventScroll: true });
 }
 
 function returnToResult() {
@@ -785,6 +796,8 @@ function saveProfileCard() {
 
 function populateResult(snapshot, outcome) {
   latestOutcome = { ...outcome };
+  elements.outputLive.textContent = snapshot.power;
+  elements.safetyLive.textContent = snapshot.stability;
   elements.resultPower.textContent = snapshot.power;
   elements.resultStability.textContent = snapshot.stability;
   elements.resultAltitude.textContent = formatAltitude(outcome.altitude);
@@ -957,7 +970,7 @@ elements.retryButton.addEventListener("click", resetMission);
 elements.profileButton.addEventListener("click", openProfileCard);
 elements.cardBackButton.addEventListener("click", returnToResult);
 elements.saveCardButton.addEventListener("click", saveProfileCard);
-elements.profileName.addEventListener("input", drawProfileCard);
+elements.profileName.addEventListener("input", syncPlayerIdentity);
 elements.avatarOptions.forEach((option) => {
   option.addEventListener("click", () => {
     selectedAvatar = option.dataset.avatar;
@@ -966,11 +979,11 @@ elements.avatarOptions.forEach((option) => {
       item.classList.toggle("is-selected", isSelected);
       item.setAttribute("aria-pressed", String(isSelected));
     });
-    elements.profileButton.querySelector("img").src = `./assets/crew-${selectedAvatar}.svg`;
-    drawProfileCard();
+    syncPlayerIdentity();
   });
 });
 
 createEffectPieces();
 resetQuizData();
 setAltitude(0);
+syncPlayerIdentity();
