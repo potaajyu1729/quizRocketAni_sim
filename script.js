@@ -623,7 +623,7 @@ function drawProfileCard() {
   context.fillStyle = "#7de8ed";
   context.font = "700 24px ui-monospace, monospace";
   context.letterSpacing = "3px";
-  context.fillText("CODE ORBIT / CREW PROFILE", 80, 78);
+  context.fillText("EngiFar / CREW PROFILE", 80, 78);
   context.letterSpacing = "0px";
 
   context.fillStyle = "#f3f8f5";
@@ -769,7 +769,7 @@ function saveProfileCard() {
     if (!blob) return;
     const link = document.createElement("a");
     const objectUrl = URL.createObjectURL(blob);
-    link.download = `code-orbit-card-${safeName}.png`;
+    link.download = `engifar-card-${safeName}.png`;
     link.href = objectUrl;
     document.body.append(link);
     link.click();
@@ -792,7 +792,7 @@ function populateResult(snapshot, outcome) {
 
   if (outcome.success) {
     elements.resultIcon.textContent = "✓";
-    elements.resultKicker.textContent = "CODE ORBIT COMPLETE";
+    elements.resultKicker.textContent = "EngiFar COMPLETE";
     elements.resultTitle.textContent = "軌道到達！";
     elements.resultMessage.textContent = "Webの知識がロケットの推進力になりました。";
   } else {
