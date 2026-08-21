@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <title>CODE ORBIT — Web Quiz Rocket Mission</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <div class="app-shell" id="app" data-state="idle" data-phase="briefing">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="CODE ORBIT ホーム">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <path d="M16 3c5 4 7 9 7 15l-3 6h-8l-3-6c0-6 2-11 7-15Z" />
+            <circle cx="16" cy="13" r="3" />
+            <path d="m10 18-5 5 7 1m10-6 5 5-7 1" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>CODE ORBIT</strong>
+          <small>WEB QUIZ FLIGHT SYSTEM</small>
+        </span>
+      </a>
+
+      <div class="mission-state" role="status" aria-live="polite">
+        <span class="state-light" aria-hidden="true"></span>
+        <span>
+          <small>24 QUESTION MISSION</small>
+          <strong id="mission-status">STANDBY</strong>
+        </span>
+      </div>
+    </header>
+
+    <main class="cockpit">
+      <section class="flight-deck" aria-label="ロケット飛行画面">
+        <div class="deck-bar deck-bar--top">
+          <span><i class="signal-dot" aria-hidden="true"></i> MISSION WINDOW</span>
+          <span>TRAJECTORY <b id="trajectory-label">LOCKED</b></span>
+        </div>
+
+        <div class="flight-stage" id="flight-stage">
+          <div class="space-glow" aria-hidden="true"></div>
+          <div class="stars stars--far" aria-hidden="true"></div>
+          <div class="stars stars--near" aria-hidden="true"></div>
+          <div class="orbital-line orbital-line--one" aria-hidden="true"></div>
+          <div class="orbital-line orbital-line--two" aria-hidden="true"></div>
+
+          <div class="altitude-scale" aria-hidden="true">
+            <span><i></i> 10K</span>
+            <span><i></i> 7.5K</span>
+            <span><i></i> 5K</span>
+            <span><i></i> 2.5K</span>
+          </div>
+
+          <div class="live-altimeter">
+            <span>ALTITUDE</span>
+            <strong><output id="altitude-live">0</output><small> km</small></strong>
+          </div>
+
+          <div class="celebration" id="celebration" aria-hidden="true">
+            <div class="success-orbit"></div>
+            <div class="success-emblem">
+              <span>CODE ORBIT COMPLETE</span>
+              <strong>軌道到達！</strong>
+            </div>
+            <div class="confetti" id="confetti"></div>
+          </div>
+
+          <div class="flight-event" id="flight-event" aria-hidden="true">
+            <span id="event-label">SPARK ALTITUDE</span>
+            <strong><b id="event-altitude">0</b> km</strong>
+          </div>
+
+          <div class="boarding-crew" id="boarding-crew" aria-hidden="true">
+            <div class="crew-character crew-character--red">
+              <span class="crew-body"><i class="crew-face"></i></span>
+            </div>
+            <div class="crew-character crew-character--blue">
+              <span class="crew-body"><i class="crew-face"></i></span>
+            </div>
+            <div class="crew-character crew-character--yellow">
+              <span class="crew-body"><i class="crew-face"></i></span>
+            </div>
+            <div class="crew-character crew-character--green">
+              <span class="crew-body"><i class="crew-face"></i></span>
+            </div>
+          </div>
+
+          <div class="flight-path" aria-hidden="true"></div>
+
+          <div class="rocket-vehicle" id="rocket" aria-label="ロケット">
+            <div class="exhaust exhaust--left" aria-hidden="true"></div>
+            <div class="exhaust exhaust--right" aria-hidden="true"></div>
+            <svg class="rocket" viewBox="0 0 120 216" role="img" aria-label="垂直に立つロケット">
+              <defs>
+                <linearGradient id="rocket-hull" x1="0" x2="1">
+                  <stop offset="0" stop-color="#cbd8df" />
+                  <stop offset=".5" stop-color="#f8fbf7" />
+                  <stop offset="1" stop-color="#aebec8" />
+                </linearGradient>
+                <linearGradient id="rocket-window" x1="0" y1="0" x2="1" y2="1">
+                  <stop stop-color="#bdf7ff" />
+                  <stop offset="1" stop-color="#2589ab" />
+                </linearGradient>
+              </defs>
+              <path class="flame flame--outer" d="M47 174c1 20 5 32 13 40 8-8 12-20 13-40Z" />
+              <path class="flame flame--inner" d="M53 174c1 13 3 22 7 28 4-6 6-15 7-28Z" />
+              <path class="rocket-fin" d="M37 126 14 172l31-9Zm46 0 23 46-31-9Z" />
+              <path class="rocket-body" d="M60 4C39 24 32 52 35 109l7 58h36l7-58C88 52 81 24 60 4Z" />
+              <path class="rocket-nose" d="M60 4C50 14 43 26 39 42h42C77 26 70 14 60 4Z" />
+              <path class="rocket-band" d="M35 105h50l-1 17H36Z" />
+              <circle class="rocket-window" cx="60" cy="69" r="15" />
+              <circle class="rocket-window-glint" cx="55" cy="64" r="4" />
+              <path class="rocket-seam" d="M60 5v31M43 145h34" />
+            </svg>
+          </div>
+
+          <div class="explosion" id="explosion" aria-hidden="true">
+            <span class="shockwave shockwave--one"></span>
+            <span class="shockwave shockwave--two"></span>
+            <span class="blast-core"></span>
+            <div class="debris" id="debris"></div>
+          </div>
+
+          <div class="launch-pad" aria-hidden="true">
+            <div class="pad-light pad-light--one"></div>
+            <div class="pad-light pad-light--two"></div>
+            <div class="pad-light pad-light--three"></div>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="deck-bar deck-bar--bottom">
+          <span>ENGINE <b id="engine-label">IDLE</b></span>
+          <span class="score-strip"><i aria-hidden="true"></i> OUTPUT <b id="output-live">--</b>% / SAFETY <b id="safety-live">--</b>%</span>
+        </div>
+      </section>
+
+      <aside class="mission-panel" aria-label="クイズ・発射コントロール">
+        <section class="mode-panel briefing-panel" id="briefing-panel">
+          <div class="panel-heading">
+            <p class="eyebrow"><span>01</span> MISSION BRIEFING</p>
+            <h1>WEB QUIZ <br><em>ROCKET</em></h1>
+            <p class="panel-description">Webの知識をエネルギーに変えて、4色のクルーと宇宙を目指そう。</p>
+          </div>
+
+          <div class="mission-facts" aria-label="ミッション内容">
+            <div><strong>24</strong><span>QUESTIONS</span><small>全24問</small></div>
+            <div><strong>06</strong><span>FIELDS</span><small>6分野</small></div>
+            <div><strong>04</strong><span>CREW</span><small>4人搭乗</small></div>
+          </div>
+
+          <div class="score-guide">
+            <div>
+              <span class="guide-icon" aria-hidden="true">↟</span>
+              <span><strong>出力強度</strong><small>難易度を含む正答率</small></span>
+            </div>
+            <div>
+              <span class="guide-icon" aria-hidden="true">◎</span>
+              <span><strong>安全性</strong><small>6分野のバランス平均</small></span>
+            </div>
+          </div>
+
+          <div class="threshold-hint briefing-hint">
+            <span class="threshold-icon" aria-hidden="true">◇</span>
+            <span><strong>軌道ライン</strong><small>出力60%以上・安全性75%以上</small></span>
+          </div>
+
+          <button class="launch-button" id="start-button" type="button">
+            <span class="launch-button__icon" aria-hidden="true">&lt;/&gt;</span>
+            <span><strong>クイズを始める</strong><small>START MISSION</small></span>
+            <span class="launch-button__arrow" aria-hidden="true">→</span>
+          </button>
+        </section>
+
+        <section class="mode-panel quiz-panel" id="quiz-panel" hidden aria-live="polite">
+          <div class="quiz-progress-head">
+            <div>
+              <p class="eyebrow">KNOWLEDGE CHARGE</p>
+              <strong><span id="question-current">01</span><small> / 24</small></strong>
+            </div>
+            <span class="category-chip" id="question-category">フロントエンド</span>
+          </div>
+
+          <div class="quiz-progress"><i id="quiz-progress-bar"></i></div>
+
+          <div class="question-meta">
+            <span id="question-label">QUESTION 01</span>
+            <span class="difficulty-chip" id="difficulty-chip">STANDARD</span>
+          </div>
+          <pre class="question-code" id="question-text">問題を読み込んでいます...</pre>
+          <div class="quiz-answers" id="answers"></div>
+
+          <div class="feedback-slot">
+            <div class="quiz-feedback" id="feedback" hidden>
+              <strong id="feedback-title">正解！</strong>
+              <p id="feedback-text"></p>
+            </div>
+          </div>
+
+          <button class="quiz-next-button" id="next-button" type="button" disabled>
+            <span id="next-label">次の問題へ</span><b aria-hidden="true">→</b>
+          </button>
+        </section>
+
+        <section class="mode-panel ready-panel" id="ready-panel" hidden>
+          <div class="ready-heading">
+            <span class="ready-icon" aria-hidden="true">✓</span>
+            <p class="eyebrow">FLIGHT DATA READY</p>
+            <h2>データ完成！</h2>
+            <p>クイズで集めたエネルギーをロケットへ転送しました。</p>
+          </div>
+
+          <div class="computed-metrics">
+            <div>
+              <span>出力強度<small>WEIGHTED ACCURACY</small></span>
+              <strong><b id="ready-output">0</b>%</strong>
+            </div>
+            <div>
+              <span>安全性<small>FIELD BALANCE</small></span>
+              <strong><b id="ready-safety">0</b>%</strong>
+            </div>
+          </div>
+
+          <div class="balance-list" id="balance-list" aria-label="6分野の到達度"></div>
+
+          <div class="threshold-hint ready-hint" id="ready-hint">
+            <span class="threshold-icon" aria-hidden="true">◇</span>
+            <span><strong id="ready-message">フライトコースを計算しました</strong><small>難しい問題にはボーナス係数を反映</small></span>
+          </div>
+
+          <button class="launch-button" id="launch-button" type="button">
+            <span class="launch-button__icon" aria-hidden="true">▲</span>
+            <span><strong>ロケットを発射</strong><small>BOARD CREW &amp; LAUNCH</small></span>
+            <span class="launch-button__arrow" aria-hidden="true">→</span>
+          </button>
+        </section>
+
+        <section class="mode-panel flight-panel" id="flight-panel" hidden>
+          <div class="flight-copy">
+            <div class="radar" aria-hidden="true"><i></i><span></span></div>
+            <p class="eyebrow">LIVE TELEMETRY</p>
+            <h2 id="flight-title">垂直上昇中</h2>
+            <p id="flight-description">軌道到達コースを飛行中です。<br>フライトデータはロックされています。</p>
+          </div>
+          <div class="telemetry-card">
+            <span>現在の高度</span>
+            <strong><b id="panel-altitude">0</b><small> km</small></strong>
+            <div class="telemetry-progress"><i id="telemetry-progress"></i></div>
+          </div>
+        </section>
+
+        <section class="mode-panel result-panel" id="result-panel" hidden aria-live="polite">
+          <div class="result-heading">
+            <span class="result-icon" id="result-icon" aria-hidden="true">✓</span>
+            <p class="eyebrow" id="result-kicker">MISSION COMPLETE</p>
+            <h2 id="result-title">軌道到達！</h2>
+            <p id="result-message">Webの知識がロケットの推進力になりました。</p>
+          </div>
+
+          <dl class="result-metrics">
+            <div>
+              <dt>出力強度</dt>
+              <dd><b id="result-power">0</b><small>%</small></dd>
+            </div>
+            <div>
+              <dt>安全性</dt>
+              <dd><b id="result-stability">0</b><small>%</small></dd>
+            </div>
+            <div class="altitude-result">
+              <dt>到達高度</dt>
+              <dd><b id="result-altitude">0</b><small> km</small></dd>
+            </div>
+          </dl>
+
+          <div class="result-actions">
+            <button class="profile-button" id="profile-button" type="button">
+              <img src="./assets/crew-green.svg" alt="" aria-hidden="true">
+              <span>自己紹介カード</span>
+            </button>
+            <button class="retry-button" id="retry-button" type="button">
+              <span aria-hidden="true">↻</span> もう一度チャレンジ
+            </button>
+          </div>
+        </section>
+
+        <section class="mode-panel card-panel" id="card-panel" hidden aria-live="polite">
+          <header class="card-heading">
+            <p class="eyebrow">CREW PROFILE CARD</p>
+            <h2>自己紹介カードをつくろう</h2>
+            <p>表示名とクルーアイコンを選ぶと、フライトデータ入りのカードが完成します。</p>
+          </header>
+
+          <div class="profile-card-preview">
+            <canvas id="profile-card" width="1200" height="760" aria-label="自己紹介カードのプレビュー">
+              自己紹介カードのプレビュー
+            </canvas>
+          </div>
+
+          <div class="card-controls">
+            <label class="profile-name-field" for="profile-name">
+              <span>DISPLAY NAME <small>カードに載せる名前</small></span>
+              <input id="profile-name" type="text" maxlength="20" autocomplete="name" value="CREW MEMBER">
+            </label>
+
+            <fieldset class="avatar-field">
+              <legend>CREW ICON</legend>
+              <div class="avatar-options">
+                <button class="avatar-option" type="button" data-avatar="red" aria-label="赤のクルー" aria-pressed="false">
+                  <img src="./assets/crew-red.svg" alt="">
+                </button>
+                <button class="avatar-option" type="button" data-avatar="blue" aria-label="青のクルー" aria-pressed="false">
+                  <img src="./assets/crew-blue.svg" alt="">
+                </button>
+                <button class="avatar-option" type="button" data-avatar="yellow" aria-label="黄のクルー" aria-pressed="false">
+                  <img src="./assets/crew-yellow.svg" alt="">
+                </button>
+                <button class="avatar-option is-selected" type="button" data-avatar="green" aria-label="緑のクルー" aria-pressed="true">
+                  <img src="./assets/crew-green.svg" alt="">
+                </button>
+              </div>
+            </fieldset>
+
+            <div class="card-actions">
+              <button class="save-card-button" id="save-card-button" type="button">
+                <span aria-hidden="true">↓</span><b id="save-card-label">PNGで保存</b>
+              </button>
+              <button class="card-back-button" id="card-back-button" type="button">← リザルトへ</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>
