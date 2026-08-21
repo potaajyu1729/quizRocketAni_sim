@@ -159,28 +159,23 @@
               <small>名前とクルーカラーを決めよう</small>
             </div>
 
-            <label class="profile-name-field" for="profile-name">
-              <span>DISPLAY NAME <small>プレイヤー名</small></span>
-              <input id="profile-name" type="text" maxlength="20" autocomplete="name" value="CREW MEMBER">
-            </label>
+            <div class="player-identity-row">
+              <img class="player-avatar-preview" id="player-avatar-preview" src="./assets/crew-green.svg" alt="選択中の緑のクルー">
+              <label class="profile-name-field" for="profile-name">
+                <span>DISPLAY NAME <small>プレイヤー名</small></span>
+                <input id="profile-name" type="text" maxlength="20" autocomplete="name" enterkeyhint="go" value="CREW MEMBER">
+              </label>
+            </div>
 
-            <fieldset class="avatar-field">
-              <legend>PLAYER COLOR</legend>
+            <div class="color-picker" role="group" aria-labelledby="player-color-label">
+              <span class="color-picker-label" id="player-color-label">PLAYER COLOR <small id="selected-color-label">緑</small></span>
               <div class="avatar-options">
-                <button class="avatar-option" type="button" data-avatar="red" aria-label="赤のクルー" aria-pressed="false">
-                  <img src="./assets/crew-red.svg" alt="">
-                </button>
-                <button class="avatar-option" type="button" data-avatar="blue" aria-label="青のクルー" aria-pressed="false">
-                  <img src="./assets/crew-blue.svg" alt="">
-                </button>
-                <button class="avatar-option" type="button" data-avatar="yellow" aria-label="黄のクルー" aria-pressed="false">
-                  <img src="./assets/crew-yellow.svg" alt="">
-                </button>
-                <button class="avatar-option is-selected" type="button" data-avatar="green" aria-label="緑のクルー" aria-pressed="true">
-                  <img src="./assets/crew-green.svg" alt="">
-                </button>
+                <button class="avatar-option avatar-option--red" type="button" data-avatar="red" aria-label="赤のクルーを選ぶ" aria-pressed="false"><span aria-hidden="true"></span></button>
+                <button class="avatar-option avatar-option--blue" type="button" data-avatar="blue" aria-label="青のクルーを選ぶ" aria-pressed="false"><span aria-hidden="true"></span></button>
+                <button class="avatar-option avatar-option--yellow" type="button" data-avatar="yellow" aria-label="黄のクルーを選ぶ" aria-pressed="false"><span aria-hidden="true"></span></button>
+                <button class="avatar-option avatar-option--green is-selected" type="button" data-avatar="green" aria-label="緑のクルーを選ぶ" aria-pressed="true"><span aria-hidden="true"></span></button>
               </div>
-            </fieldset>
+            </div>
           </div>
 
           <div class="threshold-hint briefing-hint">

@@ -128,6 +128,8 @@ const elements = {
   cardPanel: document.querySelector("#card-panel"),
   profileCard: document.querySelector("#profile-card"),
   profileName: document.querySelector("#profile-name"),
+  playerAvatarPreview: document.querySelector("#player-avatar-preview"),
+  selectedColorLabel: document.querySelector("#selected-color-label"),
   avatarOptions: [...document.querySelectorAll(".avatar-option")],
   saveCardButton: document.querySelector("#save-card-button"),
   saveCardLabel: document.querySelector("#save-card-label"),
@@ -233,6 +235,9 @@ function syncPlayerIdentity() {
   const avatarLabel = avatarLabels[selectedAvatar] ?? avatarLabels.green;
   const avatarPath = `./assets/crew-${selectedAvatar}.svg`;
 
+  elements.playerAvatarPreview.src = avatarPath;
+  elements.playerAvatarPreview.alt = `選択中の${avatarLabel}のクルー`;
+  elements.selectedColorLabel.textContent = avatarLabel;
   elements.readyPlayerAvatar.src = avatarPath;
   elements.readyPlayerAvatar.alt = `選択した${avatarLabel}のクルー`;
   elements.readyPlayerName.textContent = displayName;
@@ -971,6 +976,18 @@ elements.profileButton.addEventListener("click", openProfileCard);
 elements.cardBackButton.addEventListener("click", returnToResult);
 elements.saveCardButton.addEventListener("click", saveProfileCard);
 elements.profileName.addEventListener("input", syncPlayerIdentity);
+elements.profileName.addEventListener("focus", () => {
+  elements.briefingPanel.classList.add("is-name-editing");
+});
+elements.profileName.addEventListener("blur", () => {
+  elements.briefingPanel.classList.remove("is-name-editing");
+});
+elements.profileName.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  elements.profileName.blur();
+  startQuiz();
+});
 elements.avatarOptions.forEach((option) => {
   option.addEventListener("click", () => {
     selectedAvatar = option.dataset.avatar;

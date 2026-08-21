@@ -2926,6 +2926,178 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
 }
 
+/* Compact player picker and reliable start controls */
+.player-identity-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+.player-avatar-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 9px rgba(0, 0, 0, .22));
+}
+
+.player-identity-row .profile-name-field {
+  min-width: 0;
+  gap: 4px;
+}
+
+.player-identity-row .profile-name-field input {
+  height: 40px;
+}
+
+.color-picker {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(158px, 184px);
+  align-items: center;
+  gap: 8px;
+}
+
+.color-picker-label {
+  min-width: 0;
+  color: var(--cyan);
+  font: 700 8px/1.25 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .08em;
+}
+
+.color-picker-label small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+.player-setup .avatar-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.player-setup .avatar-option {
+  --swatch: #51d27b;
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+.player-setup .avatar-option > span {
+  width: 22px;
+  height: 22px;
+  display: block;
+  border: 2px solid rgba(255, 255, 255, .64);
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--swatch) 42%, transparent);
+}
+
+.player-setup .avatar-option--red {
+  --swatch: #ff5e66;
+}
+
+.player-setup .avatar-option--blue {
+  --swatch: #4f9dff;
+}
+
+.player-setup .avatar-option--yellow {
+  --swatch: #ffd75e;
+}
+
+.player-setup .avatar-option--green {
+  --swatch: #51d27b;
+}
+
+.player-setup .avatar-option.is-selected::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #07111f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.briefing-panel > #start-button {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+@media (max-width: 760px) {
+  .player-setup {
+    gap: 5px;
+  }
+
+  .player-setup-heading small {
+    display: none;
+  }
+
+  .player-identity-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .player-avatar-preview {
+    width: 44px;
+    height: 44px;
+  }
+
+  .player-identity-row .profile-name-field input {
+    height: 40px;
+  }
+
+  .briefing-panel.is-name-editing .panel-description,
+  .briefing-panel.is-name-editing .mission-facts,
+  .briefing-panel.is-name-editing .briefing-hint {
+    display: none;
+  }
+
+  .briefing-panel.is-name-editing {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 340px) {
+  .color-picker {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .color-picker-label {
+    font-size: 7px;
+    letter-spacing: .03em;
+  }
+}
+
+@media (max-width: 479px) and (max-height: 420px) {
+  .app-shell[data-phase="briefing"] .flight-deck,
+  .briefing-panel .panel-heading,
+  .briefing-panel .mission-facts,
+  .briefing-panel .briefing-hint {
+    display: none;
+  }
+
+  .briefing-panel {
+    justify-content: center;
+  }
+}
+
 /* Player setup and result-only score reveal */
 .score-strip {
   display: none;
