@@ -5,6 +5,7 @@ const SAFETY_THRESHOLD = 75;
 const ANSWER_TIME_MS = 10_000;
 const REVIEW_TIME_MS = 5_000;
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const MISSION_STORAGE_KEY = "engifar-mission-v2";
 
 const categories = [
   { name: "フロントエンド", short: "FRONT" },
@@ -67,8 +68,119 @@ const questionBank = rawQuestions.map((item, index) => {
   };
 });
 
+function createDefaultMissionRecord() {
+  return {
+    version: 2,
+    playerConfigured: false,
+    player: {
+      name: "CREW MEMBER",
+      color: DEFAULT_PLAYER_COLOR
+    },
+    metrics: null,
+    outcome: null
+  };
+}
+
+function normalizeMissionRecord(value) {
+  const fallback = createDefaultMissionRecord();
+  if (!value || typeof value !== "object") return fallback;
+
+  const playerName = String(value.player?.name ?? fallback.player.name).trim().slice(0, 20)
+    || fallback.player.name;
+  const playerColor = normalizeHexColor(value.player?.color ?? fallback.player.color);
+  const metricsSource = value.metrics;
+  const hasMetrics = metricsSource
+    && Number.isFinite(Number(metricsSource.power))
+    && Number.isFinite(Number(metricsSource.safety));
+  const categoryScores = Object.fromEntries(categories.map(({ name }) => [
+    name,
+    clamp(Number(metricsSource?.categoryScores?.[name]) || 0, 0, 100)
+  ]));
+  const metrics = hasMetrics
+    ? {
+        power: Math.round(clamp(Number(metricsSource.power), 0, 100)),
+        safety: Math.round(clamp(Number(metricsSource.safety), 0, 100)),
+        categoryScores: Object.fromEntries(
+          Object.entries(categoryScores).map(([name, score]) => [name, Math.round(score)])
+        )
+      }
+    : null;
+  const outcomeSource = value.outcome;
+  const hasOutcome = outcomeSource
+    && typeof outcomeSource.success === "boolean"
+    && Number.isFinite(Number(outcomeSource.altitude))
+    && Number.isFinite(Number(outcomeSource.travel));
+  const outcome = hasOutcome
+    ? {
+        success: outcomeSource.success,
+        altitude: Math.max(0, Math.round(Number(outcomeSource.altitude))),
+        travel: clamp(Number(outcomeSource.travel), 0, 1)
+      }
+    : null;
+
+  return {
+    version: 2,
+    playerConfigured: Boolean(value.playerConfigured),
+    player: { name: playerName, color: playerColor },
+    metrics,
+    outcome
+  };
+}
+
+function missionProgress(record) {
+  if (record?.outcome) return 3;
+  if (record?.metrics) return 2;
+  if (record?.playerConfigured) return 1;
+  return 0;
+}
+
+function readMissionRecord() {
+  let hashRecord = null;
+  let storedRecord = null;
+
+  try {
+    const hashParameters = new URLSearchParams(window.location.hash.slice(1));
+    const hashValue = hashParameters.get("mission");
+    if (hashValue) hashRecord = normalizeMissionRecord(JSON.parse(hashValue));
+  } catch {
+    // A clean default record keeps every page ready to use.
+  }
+
+  try {
+    const storedValue = window.sessionStorage.getItem(MISSION_STORAGE_KEY);
+    if (storedValue) storedRecord = normalizeMissionRecord(JSON.parse(storedValue));
+  } catch {
+    // URL hash handoff remains available when storage is restricted.
+  }
+
+  if (hashRecord && storedRecord) {
+    const samePlayer = hashRecord.player.name === storedRecord.player.name
+      && hashRecord.player.color === storedRecord.player.color;
+    if (samePlayer && missionProgress(storedRecord) > missionProgress(hashRecord)) return storedRecord;
+  }
+
+  return hashRecord ?? storedRecord ?? createDefaultMissionRecord();
+}
+
+function persistMissionRecord(record) {
+  const normalizedRecord = normalizeMissionRecord(record);
+  try {
+    window.sessionStorage.setItem(MISSION_STORAGE_KEY, JSON.stringify(normalizedRecord));
+  } catch {
+    // Page-to-page URL handoff still carries the same record.
+  }
+  return normalizedRecord;
+}
+
+function navigateToPage(path, record = missionState) {
+  missionState = persistMissionRecord(record);
+  const payload = encodeURIComponent(JSON.stringify(missionState));
+  window.location.href = `${path}#mission=${payload}`;
+}
+
 const elements = {
   app: document.querySelector("#app"),
+  brandLink: document.querySelector(".brand"),
   stage: document.querySelector("#flight-stage"),
   rocket: document.querySelector("#rocket"),
   boardingCrew: document.querySelector("#boarding-crew"),
@@ -136,10 +248,12 @@ const elements = {
   cardBackButton: document.querySelector("#card-back-button"),
   cardCrewAvatar: document.querySelector("#card-crew-avatar"),
   cardCrewName: document.querySelector("#card-crew-name"),
-  cardCrewRole: document.querySelector("#card-crew-role")
+  cardCrewRole: document.querySelector("#card-crew-role"),
+  modePanels: [...document.querySelectorAll(".mode-panel")]
 };
 
-const panelNames = ["briefing", "quiz", "ready", "flight", "result", "card"];
+const currentPage = elements.app?.dataset.page ?? "home";
+let missionState = readMissionRecord();
 let animationFrame = 0;
 let resultTimer = 0;
 let boardingTimer = 0;
@@ -151,15 +265,21 @@ let quizPhaseDuration = 0;
 let quizPhaseMode = "idle";
 let quizCycleId = 0;
 let crewProgressTimers = [];
-let currentState = "idle";
-let missionParameters = { power: 0, stability: 0 };
-let latestMetrics = {
-  power: 0,
-  safety: 0,
-  categoryScores: Object.fromEntries(categories.map(({ name }) => [name, 0]))
-};
-let latestOutcome = { success: false, altitude: 0, travel: 0 };
-let selectedPlayerColor = DEFAULT_PLAYER_COLOR;
+let currentState = elements.app?.dataset.state ?? "idle";
+let missionParameters = missionState.metrics
+  ? { power: missionState.metrics.power, stability: missionState.metrics.safety }
+  : { power: 0, stability: 0 };
+let latestMetrics = missionState.metrics
+  ? { ...missionState.metrics, categoryScores: { ...missionState.metrics.categoryScores } }
+  : {
+      power: 0,
+      safety: 0,
+      categoryScores: Object.fromEntries(categories.map(({ name }) => [name, 0]))
+    };
+let latestOutcome = missionState.outcome
+  ? { ...missionState.outcome }
+  : { success: false, altitude: 0, travel: 0 };
+let selectedPlayerColor = missionState.player.color;
 
 const quizState = {
   current: 0,
@@ -236,23 +356,23 @@ function formatAltitude(value) {
 
 function setState(state) {
   currentState = state;
-  elements.app.dataset.state = state;
+  if (elements.app) elements.app.dataset.state = state;
 }
 
 function setPhase(phase) {
-  elements.app.dataset.phase = phase;
+  if (elements.app) elements.app.dataset.phase = phase;
 }
 
 function showPanel(panelName) {
-  panelNames.forEach((name) => {
-    elements[`${name}Panel`].hidden = name !== panelName;
+  elements.modePanels.forEach((panel) => {
+    panel.hidden = panel.id !== `${panelName}-panel`;
   });
 }
 
 function setAltitude(value) {
   const formatted = formatAltitude(value);
-  elements.altitudeLive.textContent = formatted;
-  elements.panelAltitude.textContent = formatted;
+  if (elements.altitudeLive) elements.altitudeLive.textContent = formatted;
+  if (elements.panelAltitude) elements.panelAltitude.textContent = formatted;
 }
 
 function resetQuizData() {
@@ -286,24 +406,36 @@ function categoryShortName(category) {
 }
 
 function syncPlayerIdentity() {
-  const displayName = elements.profileName.value.trim() || "CREW MEMBER";
+  const displayName = elements.profileName?.value.trim() || missionState.player.name || "CREW MEMBER";
   selectedPlayerColor = normalizeHexColor(selectedPlayerColor);
   const colorCode = selectedPlayerColor.toUpperCase();
   const avatarDataUrl = createCrewAvatarDataUrl(selectedPlayerColor);
 
-  elements.app.style.setProperty("--player-color", selectedPlayerColor);
-  elements.app.style.setProperty("--player-color-ink", readableInkColor(selectedPlayerColor));
-  elements.playerColorInput.value = selectedPlayerColor;
-  elements.selectedColorCode.textContent = colorCode;
-  elements.playerAvatarPreview.src = avatarDataUrl;
-  elements.playerAvatarPreview.alt = `選択中の${colorCode}カラーのクルー`;
-  elements.readyPlayerAvatar.src = avatarDataUrl;
-  elements.readyPlayerAvatar.alt = `選択した${colorCode}カラーのクルー`;
-  elements.readyPlayerName.textContent = displayName;
-  elements.profileButton.querySelector("img").src = avatarDataUrl;
-  elements.cardCrewAvatar.src = avatarDataUrl;
-  elements.cardCrewAvatar.alt = `${colorCode}カラーのクルー`;
-  elements.cardCrewName.textContent = displayName;
+  missionState = persistMissionRecord({
+    ...missionState,
+    player: { name: displayName, color: selectedPlayerColor }
+  });
+
+  elements.app?.style.setProperty("--player-color", selectedPlayerColor);
+  elements.app?.style.setProperty("--player-color-ink", readableInkColor(selectedPlayerColor));
+  if (elements.playerColorInput) elements.playerColorInput.value = selectedPlayerColor;
+  if (elements.selectedColorCode) elements.selectedColorCode.textContent = colorCode;
+  if (elements.playerAvatarPreview) {
+    elements.playerAvatarPreview.src = avatarDataUrl;
+    elements.playerAvatarPreview.alt = `選択中の${colorCode}カラーのクルー`;
+  }
+  if (elements.readyPlayerAvatar) {
+    elements.readyPlayerAvatar.src = avatarDataUrl;
+    elements.readyPlayerAvatar.alt = `選択した${colorCode}カラーのクルー`;
+  }
+  if (elements.readyPlayerName) elements.readyPlayerName.textContent = displayName;
+  const profileButtonAvatar = elements.profileButton?.querySelector("img");
+  if (profileButtonAvatar) profileButtonAvatar.src = avatarDataUrl;
+  if (elements.cardCrewAvatar) {
+    elements.cardCrewAvatar.src = avatarDataUrl;
+    elements.cardCrewAvatar.alt = `${colorCode}カラーのクルー`;
+  }
+  if (elements.cardCrewName) elements.cardCrewName.textContent = displayName;
   elements.crewCharacters.forEach((character) => {
     character.classList.toggle("is-player", character === elements.playerCrewCharacter);
   });
@@ -412,8 +544,8 @@ function renderQuestion() {
     elements.answers.append(button);
   });
 
-  elements.missionStatus.textContent = `QUIZ ${number}/24`;
-  elements.trajectoryLabel.textContent = categoryShortName(question.category);
+  if (elements.missionStatus) elements.missionStatus.textContent = `QUIZ ${number}/24`;
+  if (elements.trajectoryLabel) elements.trajectoryLabel.textContent = categoryShortName(question.category);
   startQuizCountdown("answer", ANSWER_TIME_MS, revealAnswer);
 }
 
@@ -520,30 +652,21 @@ function showReadyPanel() {
     categoryScores: { ...metrics.categoryScores }
   };
   missionParameters = { power: metrics.power, stability: metrics.safety };
-  syncPlayerIdentity();
-
-  setState("ready");
-  setPhase("ready");
-  showPanel("ready");
-  elements.missionStatus.textContent = "READY";
-  elements.trajectoryLabel.textContent = "DATA LOCKED";
-  elements.engineLabel.textContent = "READY";
-  elements.launchButton.focus({ preventScroll: true });
+  missionState = persistMissionRecord({
+    ...missionState,
+    metrics: latestMetrics,
+    outcome: null
+  });
+  navigateToPage("./rocket.html", missionState);
 }
 
 function startQuiz() {
   clearQuizCountdown();
-  if (!elements.profileName.value.trim()) elements.profileName.value = "CREW MEMBER";
-  syncPlayerIdentity();
   resetQuizData();
-  resetEffects();
   missionParameters = { power: 0, stability: 0 };
-  elements.outputLive.textContent = "--";
-  elements.safetyLive.textContent = "--";
   setState("quiz");
   setPhase("quiz");
   showPanel("quiz");
-  elements.engineLabel.textContent = "CHARGING";
   renderQuestion();
 }
 
@@ -556,7 +679,7 @@ function stopBoardingSequence() {
   window.clearTimeout(boardingTimer);
   boardingTimer = 0;
   clearCrewProgressTimers();
-  elements.boardingCrew.classList.remove("is-boarding");
+  elements.boardingCrew?.classList.remove("is-boarding");
 }
 
 function prepareCrewBoarding() {
@@ -606,6 +729,7 @@ function prepareCrewBoarding() {
 }
 
 function createEffectPieces() {
+  if (!elements.debris || !elements.confetti) return;
   const debrisColors = ["#ff8a4c", "#ffdd75", "#ff5e66", "#cbd8df", "#7de8ed"];
   const confettiColors = ["#c9f765", "#7de8ed", "#ff8a4c", "#f3f8f5", "#ff6d83"];
 
@@ -636,20 +760,20 @@ function createEffectPieces() {
 
 function resetEffects() {
   stopBoardingSequence();
-  elements.explosion.classList.remove("is-active");
-  elements.celebration.classList.remove("is-active");
-  elements.celebration.setAttribute("aria-hidden", "true");
-  elements.flightEvent.classList.remove("is-visible");
-  elements.flightEvent.setAttribute("aria-hidden", "true");
-  elements.stage.style.setProperty("--rocket-bottom", "6%");
-  elements.stage.style.setProperty("--rocket-drift", "0px");
-  elements.stage.style.setProperty("--rocket-tilt", "0deg");
-  elements.stage.style.setProperty("--scene-travel", "0px");
-  elements.stage.style.setProperty("--explosion-bottom", "45%");
-  elements.stage.style.setProperty("--path-height", "0px");
-  elements.stage.style.setProperty("--path-angle", "0deg");
-  elements.rocket.style.opacity = "1";
-  elements.telemetryProgress.style.width = "0%";
+  elements.explosion?.classList.remove("is-active");
+  elements.celebration?.classList.remove("is-active");
+  elements.celebration?.setAttribute("aria-hidden", "true");
+  elements.flightEvent?.classList.remove("is-visible");
+  elements.flightEvent?.setAttribute("aria-hidden", "true");
+  elements.stage?.style.setProperty("--rocket-bottom", "6%");
+  elements.stage?.style.setProperty("--rocket-drift", "0px");
+  elements.stage?.style.setProperty("--rocket-tilt", "0deg");
+  elements.stage?.style.setProperty("--scene-travel", "0px");
+  elements.stage?.style.setProperty("--explosion-bottom", "45%");
+  elements.stage?.style.setProperty("--path-height", "0px");
+  elements.stage?.style.setProperty("--path-angle", "0deg");
+  if (elements.rocket) elements.rocket.style.opacity = "1";
+  if (elements.telemetryProgress) elements.telemetryProgress.style.width = "0%";
 }
 
 function calculateOutcome(power, safety) {
@@ -697,7 +821,9 @@ function updateFlightVisual(travel, altitude, safety, elapsed, routeProgress) {
   elements.stage.style.setProperty("--scene-travel", `${Math.min(130, travel * 130).toFixed(1)}px`);
   elements.stage.style.setProperty("--path-height", `${pathHeight.toFixed(1)}px`);
   elements.stage.style.setProperty("--path-angle", `${pathAngle.toFixed(2)}deg`);
-  elements.telemetryProgress.style.width = `${Math.min(100, travel * 100)}%`;
+  if (elements.telemetryProgress) {
+    elements.telemetryProgress.style.width = `${Math.min(100, travel * 100)}%`;
+  }
   setAltitude(altitude);
 
   if (travel > 0.82) {
@@ -784,7 +910,7 @@ function getStrongestCategory() {
 function drawProfileCard() {
   const canvas = elements.profileCard;
   const context = canvas.getContext("2d");
-  const displayName = elements.profileName.value.trim() || "CREW MEMBER";
+  const displayName = missionState.player.name || "CREW MEMBER";
   const strongestCategory = getStrongestCategory();
   const profile = profileByCategory[strongestCategory];
   const accent = selectedPlayerColor;
@@ -951,7 +1077,7 @@ function returnToResult() {
 
 function saveProfileCard() {
   drawProfileCard();
-  const displayName = elements.profileName.value.trim() || "CREW MEMBER";
+  const displayName = missionState.player.name || "CREW MEMBER";
   const safeName = displayName
     .replace(/[<>:\"/\\|?*\u0000-\u001f]/g, "_")
     .replace(/\s+/g, "-")
@@ -997,6 +1123,16 @@ function populateResult(snapshot, outcome) {
   }
 }
 
+function completeFlight(outcome) {
+  latestOutcome = { ...outcome };
+  missionState = persistMissionRecord({
+    ...missionState,
+    metrics: latestMetrics,
+    outcome: latestOutcome
+  });
+  navigateToPage("./result.html", missionState);
+}
+
 function finishSuccess(snapshot, outcome) {
   setState("success");
   elements.missionStatus.textContent = "SUCCESS";
@@ -1008,9 +1144,7 @@ function finishSuccess(snapshot, outcome) {
   elements.celebration.setAttribute("aria-hidden", "false");
 
   resultTimer = window.setTimeout(() => {
-    populateResult(snapshot, outcome);
-    setPhase("result");
-    showPanel("result");
+    completeFlight(outcome);
   }, prefersReducedMotion.matches ? 80 : 700);
 }
 
@@ -1031,9 +1165,7 @@ function finishChallenge(snapshot, outcome, finalTravel) {
   }, prefersReducedMotion.matches ? 20 : 260);
 
   resultTimer = window.setTimeout(() => {
-    populateResult(snapshot, outcome);
-    setPhase("result");
-    showPanel("result");
+    completeFlight(outcome);
   }, prefersReducedMotion.matches ? 90 : 850);
 }
 
@@ -1120,48 +1252,198 @@ function resetMission() {
   window.clearTimeout(resultTimer);
   window.clearTimeout(saveLabelTimer);
   stopBoardingSequence();
-  resetQuizData();
-  resetEffects();
-  missionParameters = { power: 0, stability: 0 };
+  missionState = persistMissionRecord({
+    ...missionState,
+    metrics: null,
+    outcome: null
+  });
+  navigateToPage("./index.html", missionState);
+}
+
+function startMissionFromHome() {
+  if (!elements.profileName) return;
+  if (!elements.profileName.value.trim()) elements.profileName.value = "CREW MEMBER";
+  selectedPlayerColor = normalizeHexColor(elements.playerColorInput?.value ?? selectedPlayerColor);
+  syncPlayerIdentity();
+  missionState = persistMissionRecord({
+    ...missionState,
+    playerConfigured: true,
+    player: {
+      name: elements.profileName.value.trim(),
+      color: selectedPlayerColor
+    },
+    metrics: null,
+    outcome: null
+  });
+  navigateToPage("./quiz.html", missionState);
+}
+
+function initHomePage() {
   setState("idle");
   setPhase("briefing");
   showPanel("briefing");
-  elements.launchButton.disabled = false;
-  elements.outputLive.textContent = "--";
-  elements.safetyLive.textContent = "--";
-  elements.missionStatus.textContent = "STANDBY";
-  elements.trajectoryLabel.textContent = "LOCKED";
-  elements.engineLabel.textContent = "IDLE";
-  elements.saveCardLabel.textContent = "PNGで保存";
-  setAltitude(0);
-  elements.startButton.focus({ preventScroll: true });
+  elements.profileName.value = missionState.player.name;
+  selectedPlayerColor = missionState.player.color;
+  syncPlayerIdentity();
+  if (elements.missionStatus) elements.missionStatus.textContent = "STANDBY";
 }
 
-elements.startButton.addEventListener("click", startQuiz);
-elements.launchButton.addEventListener("click", launch);
-elements.retryButton.addEventListener("click", resetMission);
-elements.profileButton.addEventListener("click", openProfileCard);
-elements.cardBackButton.addEventListener("click", returnToResult);
-elements.saveCardButton.addEventListener("click", saveProfileCard);
-elements.profileName.addEventListener("input", syncPlayerIdentity);
-elements.profileName.addEventListener("focus", () => {
-  elements.briefingPanel.classList.add("is-name-editing");
-});
-elements.profileName.addEventListener("blur", () => {
-  elements.briefingPanel.classList.remove("is-name-editing");
-});
-elements.profileName.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.isComposing) return;
-  event.preventDefault();
-  elements.profileName.blur();
-  startQuiz();
-});
-elements.playerColorInput.addEventListener("input", (event) => {
-  selectedPlayerColor = event.currentTarget.value;
+function initQuizPage() {
+  if (!missionState.playerConfigured) {
+    navigateToPage("./index.html", missionState);
+    return;
+  }
+  if (missionState.metrics) {
+    navigateToPage("./rocket.html", missionState);
+    return;
+  }
+
+  selectedPlayerColor = missionState.player.color;
   syncPlayerIdentity();
+  startQuiz();
+}
+
+function initRocketPage() {
+  if (!missionState.playerConfigured || !missionState.metrics) {
+    navigateToPage(missionState.playerConfigured ? "./quiz.html" : "./index.html", missionState);
+    return;
+  }
+  if (missionState.outcome) {
+    navigateToPage("./result.html", missionState);
+    return;
+  }
+
+  latestMetrics = {
+    ...missionState.metrics,
+    categoryScores: { ...missionState.metrics.categoryScores }
+  };
+  missionParameters = {
+    power: latestMetrics.power,
+    stability: latestMetrics.safety
+  };
+  selectedPlayerColor = missionState.player.color;
+  syncPlayerIdentity();
+  createEffectPieces();
+  resetEffects();
+  setAltitude(0);
+  setState("ready");
+  setPhase("ready");
+  showPanel("ready");
+  elements.launchButton.disabled = false;
+  elements.missionStatus.textContent = "READY";
+  elements.trajectoryLabel.textContent = "DATA LOCKED";
+  elements.engineLabel.textContent = "READY";
+  if (elements.outputLive) elements.outputLive.textContent = "--";
+  if (elements.safetyLive) elements.safetyLive.textContent = "--";
+}
+
+function renderResultScene() {
+  const outcome = latestOutcome;
+  const finalTravel = outcome.success ? 1 : outcome.travel;
+  resetEffects();
+  updateFlightVisual(finalTravel, outcome.altitude, latestMetrics.safety, 0, 1);
+  setAltitude(outcome.altitude);
+
+  if (outcome.success) {
+    elements.eventLabel.textContent = "ORBIT ALTITUDE";
+    elements.eventAltitude.textContent = formatAltitude(outcome.altitude);
+    elements.celebration.classList.add("is-active");
+    elements.celebration.setAttribute("aria-hidden", "false");
+    return;
+  }
+
+  elements.stage.style.setProperty("--explosion-bottom", `${6 + finalTravel * 104 + 6}%`);
+  elements.eventLabel.textContent = "SPARK ALTITUDE";
+  elements.eventAltitude.textContent = formatAltitude(outcome.altitude);
+  elements.explosion.classList.add("is-active");
+  elements.flightEvent.classList.add("is-visible");
+  elements.flightEvent.setAttribute("aria-hidden", "false");
+}
+
+function initResultPage() {
+  if (!missionState.playerConfigured || !missionState.metrics || !missionState.outcome) {
+    const destination = missionState.metrics ? "./rocket.html" : missionState.playerConfigured ? "./quiz.html" : "./index.html";
+    navigateToPage(destination, missionState);
+    return;
+  }
+
+  latestMetrics = {
+    ...missionState.metrics,
+    categoryScores: { ...missionState.metrics.categoryScores }
+  };
+  latestOutcome = { ...missionState.outcome };
+  missionParameters = {
+    power: latestMetrics.power,
+    stability: latestMetrics.safety
+  };
+  selectedPlayerColor = missionState.player.color;
+  createEffectPieces();
+  syncPlayerIdentity();
+  setState(latestOutcome.success ? "success" : "challenge");
+  setPhase("result");
+  showPanel("result");
+  populateResult(missionParameters, latestOutcome);
+  elements.missionStatus.textContent = latestOutcome.success ? "SUCCESS" : "SPARK!";
+  elements.trajectoryLabel.textContent = latestOutcome.success ? "ORBIT" : "RECORDED";
+  elements.engineLabel.textContent = "COMPLETE";
+  renderResultScene();
+}
+
+function bindPageEvents() {
+  elements.brandLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    navigateToPage("./index.html", missionState);
+  });
+  elements.startButton?.addEventListener("click", startMissionFromHome);
+  elements.launchButton?.addEventListener("click", launch);
+  elements.retryButton?.addEventListener("click", resetMission);
+  elements.profileButton?.addEventListener("click", openProfileCard);
+  elements.cardBackButton?.addEventListener("click", returnToResult);
+  elements.saveCardButton?.addEventListener("click", saveProfileCard);
+  elements.profileName?.addEventListener("input", syncPlayerIdentity);
+  elements.profileName?.addEventListener("focus", () => {
+    elements.briefingPanel?.classList.add("is-name-editing");
+  });
+  elements.profileName?.addEventListener("blur", () => {
+    elements.briefingPanel?.classList.remove("is-name-editing");
+  });
+  elements.profileName?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+    elements.profileName.blur();
+    startMissionFromHome();
+  });
+  elements.playerColorInput?.addEventListener("input", (event) => {
+    selectedPlayerColor = event.currentTarget.value;
+    syncPlayerIdentity();
+  });
+}
+
+function initializePage() {
+  missionState = persistMissionRecord(missionState);
+  bindPageEvents();
+
+  if (currentPage === "home") initHomePage();
+  else if (currentPage === "quiz") initQuizPage();
+  else if (currentPage === "rocket") initRocketPage();
+  else if (currentPage === "result") initResultPage();
+}
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  missionState = persistMissionRecord(readMissionRecord());
+  if (currentPage === "quiz" && missionState.metrics) {
+    navigateToPage("./rocket.html", missionState);
+  } else if (currentPage === "rocket" && missionState.outcome) {
+    navigateToPage("./result.html", missionState);
+  }
 });
 
-createEffectPieces();
-resetQuizData();
-setAltitude(0);
-syncPlayerIdentity();
+window.addEventListener("pagehide", (event) => {
+  if (event.persisted) return;
+  clearQuizCountdown();
+  window.cancelAnimationFrame(animationFrame);
+  clearCrewProgressTimers();
+});
+
+initializePage();
