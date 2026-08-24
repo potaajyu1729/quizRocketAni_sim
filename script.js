@@ -39,30 +39,35 @@ const avatarLabels = {
 };
 
 const rawQuestions = [
-  { category: "フロントエンド", weight: 1, question: '<button type="＿＿＿">送信</button>', choices: ["submit", "click", "send", "form-submit"], answer: 0, explanation: "formを送信するbuttonのtypeにはsubmitを使います。" },
-  { category: "フロントエンド", weight: 1, question: '<label ＿＿＿="email">メール</label>\n<input id="email" type="email">', choices: ["for", "target", "name", "control"], answer: 0, explanation: "labelのforとinputのidを同じ値にすると、入力欄を関連付けられます。" },
-  { category: "フロントエンド", weight: 1.1, question: '<!-- HTML解析完了後に実行する -->\n<script ＿＿＿ src="app.js"></script>', choices: ["defer", "async", "background", "late"], answer: 0, explanation: "deferはHTML解析と並行して読み込み、解析完了後にスクリプトを実行します。" },
-  { category: "フロントエンド", weight: 1, question: ".card {\n  box-sizing: ＿＿＿;\n}", choices: ["border-box", "content-box-only", "outer-box", "fixed-box"], answer: 0, explanation: "border-boxではpaddingとborderを指定幅の内側に含めます。" },
-  { category: "フロントエンド", weight: 1, question: ".cards {\n  display: grid;\n  grid-template-columns: repeat(＿＿＿, 1fr); /* 3列 */\n}", choices: ["3", "columns", "grid", "auto"], answer: 0, explanation: "3列を作る場合、repeatの第1引数には3を指定します。" },
-  { category: "フロントエンド", weight: 1.1, question: "/* スクロール領域内で上端に留める */\n.header {\n  position: ＿＿＿;\n  top: 0;\n}", choices: ["sticky", "fixed", "float", "lock"], answer: 0, explanation: "stickyはスクロール領域を基準に、指定位置へ留まる配置です。" },
-  { category: "フロントエンド", weight: 1.1, question: "const total = prices.＿＿＿((sum, price) => sum + price, 0);", choices: ["reduce", "forEach", "filter", "collect"], answer: 0, explanation: "reduceは配列を順番にまとめ、1つの値へ変換します。" },
-  { category: "フロントエンド", weight: 1, question: 'const response = await fetch("/api/users");\nconst data = await response.＿＿＿();', choices: ["json", "parseJSON", "toObject", "bodyJSON"], answer: 0, explanation: "Responseのjson()はレスポンス本文をJSONとして読み取ります。" },
-  { category: "フロントエンド", weight: 1, question: "const visible = users.＿＿＿(user => user.active);", choices: ["filter", "select", "where", "choose"], answer: 0, explanation: "filterは条件に合う配列要素だけを集めます。" },
-  { category: "バックエンド", weight: 1.1, question: 'Deno.＿＿＿((request) => {\n  return new Response("OK");\n});', choices: ["serve", "listenHTTP", "createServer", "start"], answer: 0, explanation: "DenoのHTTPサーバーはDeno.serveで起動できます。" },
-  { category: "バックエンド", weight: 1.1, question: 'const response = await fetch("https://api.example.com");\n// deno run ＿＿＿ app.ts', choices: ["--allow-net", "--allow-http", "--network", "--enable-fetch"], answer: 0, explanation: "ネットワーク接続を使う実行権限は--allow-netです。" },
-  { category: "バックエンド", weight: 1.2, question: 'const config = await Deno.＿＿＿("config.json");', choices: ["readTextFile", "readJSON", "loadFile", "openJSON"], answer: 0, explanation: "Deno.readTextFileはファイルをテキストとして読み取ります。" },
-  { category: "データベース", weight: 1, question: "CREATE TABLE users (\n  id INTEGER ＿＿＿,\n  email TEXT UNIQUE\n);", choices: ["PRIMARY KEY", "MAIN KEY", "UNIQUE ROW", "IDENTITY KEY"], answer: 0, explanation: "PRIMARY KEYは行を一意に識別する主キーです。" },
-  { category: "データベース", weight: 1.1, question: "SELECT user_id, COUNT(*)\nFROM orders\n＿＿＿ user_id;", choices: ["GROUP BY", "ORDER BY", "COLLECT BY", "PARTITION WITH"], answer: 0, explanation: "GROUP BYを使うと、user_idごとに集計できます。" },
-  { category: "データベース", weight: 1, question: 'UPDATE users SET name = "A"\n＿＿＿ id = 3;', choices: ["WHERE", "WHEN", "FILTER", "WITH"], answer: 0, explanation: "WHEREで更新対象となる行の条件を指定します。" },
-  { category: "API", weight: 1, question: 'fetch("/api/users/42", {\n  method: "＿＿＿"\n});', choices: ["DELETE", "REMOVE", "DROP", "PURGE"], answer: 0, explanation: "DELETEは対象リソースを取り除くHTTPメソッドです。" },
-  { category: "API", weight: 1, question: "HTTP/1.1 ＿＿＿ Created\nContent-Type: application/json", choices: ["201", "200", "204", "302"], answer: 0, explanation: "201 Createdは新しいリソースが作成されたことを表します。" },
-  { category: "API", weight: 1, question: 'const headers = {\n  "＿＿＿": "application/json"\n};', choices: ["Content-Type", "Accept", "Data-Type", "Body-Type"], answer: 0, explanation: "Content-Typeは送信データの形式を表すHTTPヘッダーです。" },
-  { category: "インフラ", weight: 1, question: "# コンテナをバックグラウンドで起動\ndocker compose up -＿＿＿", choices: ["d", "b", "bg", "background"], answer: 0, explanation: "docker compose up -dのdはdetachedモードを表します。" },
-  { category: "インフラ", weight: 1.1, question: "# 所有者: 読み書き実行 / ほか: 読み取り実行\nchmod ＿＿＿ deploy.sh", choices: ["755", "644", "400", "111"], answer: 0, explanation: "755は所有者に読み書き実行、ほかの利用者に読み取り実行を設定します。" },
-  { category: "インフラ", weight: 1.2, question: "# Composeのサービス名: app\nlocation / {\n  proxy_pass http://＿＿＿:3000;\n}", choices: ["app", "localhost-only", "proxy", "server-name"], answer: 0, explanation: "Composeで定義したサービス名appを使うと、そのコンテナへ接続できます。" },
-  { category: "セキュリティ", weight: 1.2, question: "const hash = await bcrypt.＿＿＿(password, 10);", choices: ["hash", "encrypt", "protect", "secure"], answer: 0, explanation: "bcrypt.hash()はパスワードからハッシュ値を生成します。" },
-  { category: "セキュリティ", weight: 1.2, question: "// ユーザー入力をテキストとして表示\nelement.＿＿＿ = userInput;", choices: ["textContent", "innerHTML", "outerHTML", "htmlValue"], answer: 0, explanation: "textContentは入力を文字列として扱い、安全な画面表示につながります。" },
-  { category: "セキュリティ", weight: 1.2, question: 'const result = await db.query(\n  "SELECT * FROM users WHERE id = ＿＿＿",\n  [userId]\n);', choices: ["$1", "userId", "input", "raw"], answer: 0, explanation: "$1と値の配列を使うと、パラメータ化されたクエリになります。" }
+  { category: "フロントエンド", weight: 1, instruction: "「EngiFar」をページで最も重要な見出しとして表示します。空欄に入るHTMLタグ名を選んでください。", question: "<＿＿＿>EngiFar</＿＿＿>", choices: ["h1", "p", "span", "div"], answer: 0, explanation: "h1はページの中心となる見出しを表すHTMLタグです。" },
+  { category: "フロントエンド", weight: 1, instruction: "「プロフィール」から /profile ページへ移動できるリンクを作ります。URLを指定する属性を選んでください。", question: '<a ＿＿＿="/profile">プロフィール</a>', choices: ["href", "src", "action", "to"], answer: 0, explanation: "aタグのhref属性に移動先のURLを指定します。" },
+  { category: "フロントエンド", weight: 1, instruction: "タイトルの文字色を緑色にします。CSSで文字色を指定するプロパティを選んでください。", question: ".title {\n  ＿＿＿: #c9f765;\n}", choices: ["color", "background-color", "font-color", "text-color"], answer: 0, explanation: "colorプロパティは文字の色を指定します。" },
+  { category: "フロントエンド", weight: 1.1, instruction: "ボタンをクリックしたときにstart関数が動くようにします。空欄に入るイベント名を選んでください。", question: 'button.addEventListener("＿＿＿", start);', choices: ["click", "press", "tap", "onClick"], answer: 0, explanation: "clickイベントはボタンなどがクリックされたときに発生します。" },
+
+  { category: "バックエンド", weight: 1, instruction: "DenoでWebサーバーを起動して「Hello」と返します。サーバーを開始するメソッド名を選んでください。", question: 'Deno.＿＿＿(() => new Response("Hello"));', choices: ["serve", "start", "listenWeb", "runServer"], answer: 0, explanation: "Deno.serve()を使うとHTTPリクエストを受け取るサーバーを起動できます。" },
+  { category: "バックエンド", weight: 1, instruction: "非同期のfetchUser関数が完了するまで待ち、結果をuserへ入れます。空欄に入るキーワードを選んでください。", question: "const user = ＿＿＿ fetchUser();", choices: ["await", "wait", "async", "then"], answer: 0, explanation: "awaitはPromiseの完了を待って、その結果を受け取ります。" },
+  { category: "バックエンド", weight: 1.1, instruction: "JavaScriptのオブジェクトをAPIで送れるJSON文字列へ変換します。使うメソッド名を選んでください。", question: "const body = JSON.＿＿＿({ ok: true });", choices: ["stringify", "parse", "encode", "toJSON"], answer: 0, explanation: "JSON.stringify()はオブジェクトをJSON形式の文字列へ変換します。" },
+  { category: "バックエンド", weight: 1.2, instruction: "config.txtの内容を文字列として読み込みます。Denoのファイル読み込みメソッドを選んでください。", question: 'const text = await Deno.＿＿＿("config.txt");', choices: ["readTextFile", "readFileText", "openText", "load"], answer: 0, explanation: "Deno.readTextFile()はファイルの内容を文字列として読み取ります。" },
+
+  { category: "データベース", weight: 1, instruction: "usersテーブルにあるすべての列を取得します。空欄に入るSQLの命令を選んでください。", question: "＿＿＿ * FROM users;", choices: ["SELECT", "GET", "READ", "FIND"], answer: 0, explanation: "SELECTはデータベースからデータを取得するSQLの命令です。" },
+  { category: "データベース", weight: 1, instruction: "usersテーブルからidが3の行だけを取得します。条件を指定するキーワードを選んでください。", question: "SELECT * FROM users\n＿＿＿ id = 3;", choices: ["WHERE", "WHEN", "IF", "FILTER"], answer: 0, explanation: "WHEREを使うと取得する行の条件を指定できます。" },
+  { category: "データベース", weight: 1.1, instruction: "usersテーブルへ名前がAoiのデータを1件追加します。空欄に入るSQLの命令を選んでください。", question: '＿＿＿ INTO users (name)\nVALUES ("Aoi");', choices: ["INSERT", "ADD", "CREATE", "PUSH"], answer: 0, explanation: "INSERT INTOはテーブルへ新しい行を追加するSQLの命令です。" },
+  { category: "データベース", weight: 1.2, instruction: "ordersテーブルをuser_idごとにまとめ、ユーザー別の注文数を数えます。空欄を選んでください。", question: "SELECT user_id, COUNT(*)\nFROM orders\n＿＿＿ user_id;", choices: ["GROUP BY", "ORDER BY", "COLLECT BY", "PARTITION WITH"], answer: 0, explanation: "GROUP BYは同じuser_idの行をグループにまとめて集計します。" },
+
+  { category: "API", weight: 1, instruction: "APIからユーザー一覧を取得します。データ取得に使うHTTPメソッドを選んでください。", question: 'fetch("/api/users", {\n  method: "＿＿＿"\n});', choices: ["GET", "POST", "PUT", "DELETE"], answer: 0, explanation: "GETはサーバーからデータを取得するときに使うHTTPメソッドです。" },
+  { category: "API", weight: 1, instruction: "APIへ新しいユーザー情報を送って登録します。新規作成に使うHTTPメソッドを選んでください。", question: 'fetch("/api/users", {\n  method: "＿＿＿",\n  body: JSON.stringify(user)\n});', choices: ["POST", "GET", "HEAD", "TRACE"], answer: 0, explanation: "POSTはサーバーへデータを送り、新しいデータを作るときに使います。" },
+  { category: "API", weight: 1, instruction: "APIの処理が正常に完了したことを表す、基本的なHTTPステータスを選んでください。", question: "HTTP/1.1 ＿＿＿ OK", choices: ["200", "404", "500", "301"], answer: 0, explanation: "200 OKはリクエストが正常に処理されたことを表します。" },
+  { category: "API", weight: 1.1, instruction: "fetchで受け取ったレスポンス本文をJSONとして読み取ります。空欄に入るメソッド名を選んでください。", question: 'const response = await fetch("/api/users");\nconst data = await response.＿＿＿();', choices: ["json", "parseJSON", "toObject", "bodyJSON"], answer: 0, explanation: "Responseのjson()はレスポンス本文をJSONとして読み取ります。" },
+
+  { category: "インフラ", weight: 1, instruction: "Gitで現在の変更状況を確認します。空欄に入るコマンドを選んでください。", question: "git ＿＿＿", choices: ["status", "check", "state", "show-all"], answer: 0, explanation: "git statusは変更されたファイルや現在のブランチ状態を表示します。" },
+  { category: "インフラ", weight: 1, instruction: "package.jsonに書かれた依存パッケージをインストールします。空欄に入るnpmコマンドを選んでください。", question: "npm ＿＿＿", choices: ["install", "download", "setup", "packages"], answer: 0, explanation: "npm installはpackage.jsonを読み、必要なパッケージをインストールします。" },
+  { category: "インフラ", weight: 1.1, instruction: "package.jsonのscriptsに登録されたdevコマンドを実行します。空欄を選んでください。", question: "npm run ＿＿＿", choices: ["dev", "install", "package", "node"], answer: 0, explanation: "npm run devはscriptsに登録されたdevコマンドを実行します。" },
+  { category: "インフラ", weight: 1.2, instruction: "Docker Composeのコンテナをバックグラウンドで起動します。空欄に入るオプションを選んでください。", question: "docker compose up ＿＿＿", choices: ["-d", "-b", "--hide", "--later"], answer: 0, explanation: "-dを付けるとコンテナをバックグラウンドで起動できます。" },
+
+  { category: "セキュリティ", weight: 1, instruction: "入力したパスワードの文字が画面上で隠れて表示される入力欄を作ります。typeの値を選んでください。", question: '<input type="＿＿＿" name="password">', choices: ["password", "secret", "hidden-text", "secure"], answer: 0, explanation: "type=\"password\"にすると入力文字が伏せて表示されます。" },
+  { category: "セキュリティ", weight: 1, instruction: "ユーザー入力をHTMLとして解釈せず、文字列のまま画面へ表示します。使うプロパティを選んでください。", question: "message.＿＿＿ = userInput;", choices: ["textContent", "innerHTML", "outerHTML", "htmlValue"], answer: 0, explanation: "textContentは内容を文字列として扱い、安心できる画面表示につながります。" },
+  { category: "セキュリティ", weight: 1.1, instruction: "保存前のパスワードからbcryptのハッシュ値を作ります。空欄に入るメソッド名を選んでください。", question: "const hash = await bcrypt.＿＿＿(password, 10);", choices: ["hash", "encrypt", "protect", "secure"], answer: 0, explanation: "bcrypt.hash()はパスワードから保存用のハッシュ値を生成します。" },
+  { category: "セキュリティ", weight: 1.2, instruction: "userIdをSQL文字列へ直接つなげず、パラメータとして渡します。空欄に入るプレースホルダーを選んでください。", question: 'const result = await db.query(\n  "SELECT * FROM users WHERE id = ＿＿＿",\n  [userId]\n);', choices: ["$1", "userId", "input", "raw"], answer: 0, explanation: "$1と値の配列を使うと、入力値をパラメータとして安全に渡せます。" }
 ];
 
 const questionBank = rawQuestions.map((item, index) => {
@@ -106,6 +111,7 @@ const elements = {
   questionCurrent: document.querySelector("#question-current"),
   questionCategory: document.querySelector("#question-category"),
   questionLabel: document.querySelector("#question-label"),
+  questionInstruction: document.querySelector("#question-instruction"),
   difficultyChip: document.querySelector("#difficulty-chip"),
   questionText: document.querySelector("#question-text"),
   quizTimer: document.querySelector("#quiz-timer"),
@@ -336,6 +342,7 @@ function renderQuestion() {
   elements.questionCurrent.textContent = number;
   elements.questionCategory.textContent = question.category;
   elements.questionLabel.textContent = `QUESTION ${number}`;
+  elements.questionInstruction.textContent = question.instruction;
   elements.difficultyChip.textContent = difficultyLabel(question.weight);
   elements.difficultyChip.classList.toggle("is-boost", question.weight >= 1.2);
   elements.questionText.textContent = question.question;
