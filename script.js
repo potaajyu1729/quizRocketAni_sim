@@ -2,6 +2,8 @@
 
 const OUTPUT_THRESHOLD = 60;
 const SAFETY_THRESHOLD = 75;
+const ANSWER_TIME_MS = 10_000;
+const REVIEW_TIME_MS = 5_000;
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const categories = [
@@ -106,6 +108,9 @@ const elements = {
   questionLabel: document.querySelector("#question-label"),
   difficultyChip: document.querySelector("#difficulty-chip"),
   questionText: document.querySelector("#question-text"),
+  quizTimer: document.querySelector("#quiz-timer"),
+  quizTimerLabel: document.querySelector("#quiz-timer-label"),
+  quizTimerValue: document.querySelector("#quiz-timer-value"),
   answers: document.querySelector("#answers"),
   feedback: document.querySelector("#feedback"),
   feedbackTitle: document.querySelector("#feedback-title"),
@@ -144,6 +149,12 @@ let animationFrame = 0;
 let resultTimer = 0;
 let boardingTimer = 0;
 let saveLabelTimer = 0;
+let quizPhaseTimer = 0;
+let quizTickTimer = 0;
+let quizPhaseDeadline = 0;
+let quizPhaseDuration = 0;
+let quizPhaseMode = "idle";
+let quizCycleId = 0;
 let crewProgressTimers = [];
 let currentState = "idle";
 let missionParameters = { power: 0, stability: 0 };
@@ -158,6 +169,7 @@ let selectedAvatar = "green";
 const quizState = {
   current: 0,
   answered: false,
+  selectedAnswer: null,
   correctCount: 0,
   weightedEarned: 0,
   categoryStats: {}
@@ -203,8 +215,10 @@ function setAltitude(value) {
 }
 
 function resetQuizData() {
+  clearQuizCountdown();
   quizState.current = 0;
   quizState.answered = false;
+  quizState.selectedAnswer = null;
   quizState.correctCount = 0;
   quizState.weightedEarned = 0;
   quizState.categoryStats = {};
@@ -250,10 +264,74 @@ function syncPlayerIdentity() {
   });
 }
 
+function clearQuizCountdown() {
+  window.clearTimeout(quizPhaseTimer);
+  window.clearInterval(quizTickTimer);
+  quizPhaseTimer = 0;
+  quizTickTimer = 0;
+  quizPhaseDeadline = 0;
+  quizPhaseDuration = 0;
+  quizPhaseMode = "idle";
+  quizCycleId += 1;
+}
+
+function updateQuizCountdown() {
+  if (quizPhaseMode === "idle") return;
+
+  const remaining = Math.max(0, quizPhaseDeadline - performance.now());
+  const seconds = Math.ceil(remaining / 1000);
+  const progress = quizPhaseDuration > 0
+    ? clamp((remaining / quizPhaseDuration) * 100, 0, 100)
+    : 0;
+  const isReview = quizPhaseMode === "review";
+
+  elements.quizTimer.dataset.mode = quizPhaseMode;
+  elements.quizTimer.style.setProperty("--timer-progress", `${progress}%`);
+  elements.quizTimerLabel.textContent = isReview ? "答え合わせ" : "回答";
+  if (elements.quizTimerValue.textContent !== String(seconds)) {
+    elements.quizTimerValue.textContent = String(seconds);
+    elements.quizTimer.setAttribute(
+      "aria-label",
+      `${isReview ? "答え合わせ" : "回答"} 残り${seconds}秒`
+    );
+  }
+
+  if (isReview) {
+    elements.nextLabel.textContent = `${seconds}秒間、答え合わせ中`;
+    elements.nextButton.querySelector("b").textContent = "→";
+    return;
+  }
+
+  elements.nextLabel.textContent = Number.isInteger(quizState.selectedAnswer)
+    ? `残り${seconds}秒・回答は変更できます`
+    : `${seconds}秒間、回答を選べます`;
+  elements.nextButton.querySelector("b").textContent = "●";
+}
+
+function startQuizCountdown(mode, duration, onComplete) {
+  clearQuizCountdown();
+  const cycleId = quizCycleId;
+  quizPhaseMode = mode;
+  quizPhaseDuration = duration;
+  quizPhaseDeadline = performance.now() + duration;
+  updateQuizCountdown();
+
+  quizTickTimer = window.setInterval(updateQuizCountdown, 100);
+  quizPhaseTimer = window.setTimeout(() => {
+    if (cycleId !== quizCycleId) return;
+    window.clearInterval(quizTickTimer);
+    quizTickTimer = 0;
+    quizPhaseTimer = 0;
+    onComplete();
+  }, duration);
+}
+
 function renderQuestion() {
+  clearQuizCountdown();
   const question = questionBank[quizState.current];
   const number = String(quizState.current + 1).padStart(2, "0");
   quizState.answered = false;
+  quizState.selectedAnswer = null;
 
   elements.questionCurrent.textContent = number;
   elements.questionCategory.textContent = question.category;
@@ -263,16 +341,20 @@ function renderQuestion() {
   elements.questionText.textContent = question.question;
   elements.quizProgressBar.style.width = `${(quizState.current / questionBank.length) * 100}%`;
   elements.answers.replaceChildren();
-  elements.feedback.hidden = true;
+  elements.quizPanel.dataset.mode = "answer";
+  elements.feedback.classList.remove("is-update");
+  elements.feedback.classList.add("is-answering");
+  elements.feedbackTitle.textContent = "回答タイム";
+  elements.feedbackText.textContent = "10秒間は何度でも選び直せます。";
+  elements.feedback.hidden = false;
   elements.nextButton.disabled = true;
-  elements.nextLabel.textContent = quizState.current === questionBank.length - 1
-    ? "フライトデータを見る"
-    : "次の問題へ";
+  elements.nextButton.classList.add("is-countdown");
 
   question.choices.forEach((choice, index) => {
     const button = document.createElement("button");
     button.className = "quiz-answer";
     button.type = "button";
+    button.setAttribute("aria-pressed", "false");
     const letter = document.createElement("span");
     letter.className = "answer-letter";
     letter.textContent = String.fromCharCode(65 + index);
@@ -286,13 +368,37 @@ function renderQuestion() {
 
   elements.missionStatus.textContent = `QUIZ ${number}/24`;
   elements.trajectoryLabel.textContent = categoryShortName(question.category);
+  startQuizCountdown("answer", ANSWER_TIME_MS, revealAnswer);
 }
 
 function selectAnswer(selectedIndex) {
   if (quizState.answered) return;
+
+  quizState.selectedAnswer = quizState.selectedAnswer === selectedIndex
+    ? null
+    : selectedIndex;
+
+  const buttons = [...elements.answers.querySelectorAll(".quiz-answer")];
+  buttons.forEach((button, index) => {
+    const isSelected = index === quizState.selectedAnswer;
+    button.classList.toggle("is-choice", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  elements.feedbackTitle.textContent = Number.isInteger(quizState.selectedAnswer)
+    ? "回答をセット！"
+    : "回答タイム";
+  elements.feedbackText.textContent = "タイマーが0になるまで自由に変更できます。";
+  updateQuizCountdown();
+}
+
+function revealAnswer() {
+  if (quizState.answered || currentState !== "quiz") return;
   quizState.answered = true;
+  clearQuizCountdown();
 
   const question = questionBank[quizState.current];
+  const selectedIndex = quizState.selectedAnswer;
   const isCorrect = selectedIndex === question.answer;
   const stats = quizState.categoryStats[question.category];
   const buttons = [...elements.answers.querySelectorAll(".quiz-answer")];
@@ -306,18 +412,38 @@ function selectAnswer(selectedIndex) {
 
   buttons.forEach((button, index) => {
     button.disabled = true;
+    button.classList.remove("is-choice");
     if (index === question.answer) button.classList.add("is-answer-key");
-    if (index === selectedIndex) button.classList.add(isCorrect ? "is-selected-key" : "is-selected");
+    if (index === selectedIndex) {
+      button.classList.add(isCorrect ? "is-selected-key" : "is-selected");
+      button.setAttribute("aria-pressed", "true");
+    }
   });
 
   elements.feedbackTitle.textContent = isCorrect
     ? "正解！ エネルギーチャージ"
-    : "ここでアップデート！";
+    : "答えをチェック！";
+  elements.feedback.classList.remove("is-answering");
   elements.feedback.classList.toggle("is-update", !isCorrect);
   elements.feedbackText.textContent = question.explanation;
   elements.feedback.hidden = false;
-  elements.nextButton.disabled = false;
+  elements.quizPanel.dataset.mode = "review";
+  elements.nextButton.disabled = true;
   elements.quizProgressBar.style.width = `${((quizState.current + 1) / questionBank.length) * 100}%`;
+  startQuizCountdown("review", REVIEW_TIME_MS, advanceQuiz);
+}
+
+function advanceQuiz() {
+  if (currentState !== "quiz" || !quizState.answered) return;
+  clearQuizCountdown();
+
+  if (quizState.current === questionBank.length - 1) {
+    showReadyPanel();
+    return;
+  }
+
+  quizState.current += 1;
+  renderQuestion();
 }
 
 function calculateQuizMetrics() {
@@ -341,6 +467,7 @@ function calculateQuizMetrics() {
 }
 
 function showReadyPanel() {
+  clearQuizCountdown();
   const metrics = calculateQuizMetrics();
   latestMetrics = {
     ...metrics,
@@ -359,6 +486,7 @@ function showReadyPanel() {
 }
 
 function startQuiz() {
+  clearQuizCountdown();
   if (!elements.profileName.value.trim()) elements.profileName.value = "CREW MEMBER";
   syncPlayerIdentity();
   resetQuizData();
@@ -939,6 +1067,7 @@ function launch() {
 }
 
 function resetMission() {
+  clearQuizCountdown();
   window.cancelAnimationFrame(animationFrame);
   window.clearTimeout(resultTimer);
   window.clearTimeout(saveLabelTimer);
@@ -961,15 +1090,6 @@ function resetMission() {
 }
 
 elements.startButton.addEventListener("click", startQuiz);
-elements.nextButton.addEventListener("click", () => {
-  if (!quizState.answered) return;
-  if (quizState.current === questionBank.length - 1) {
-    showReadyPanel();
-    return;
-  }
-  quizState.current += 1;
-  renderQuestion();
-});
 elements.launchButton.addEventListener("click", launch);
 elements.retryButton.addEventListener("click", resetMission);
 elements.profileButton.addEventListener("click", openProfileCard);

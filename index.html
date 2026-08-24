@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
   <title>EngiFar</title>
-  <link rel="stylesheet" href="./style.css?v=20260822-0125">
-  <script src="./script.js?v=20260822-0125" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20260824-quiz-timer">
+  <script src="./script.js?v=20260824-quiz-timer" defer></script>
 </head>
 <body>
   <div class="app-shell" id="app" data-state="idle" data-phase="briefing">
@@ -203,7 +203,13 @@
 
           <div class="question-meta">
             <span id="question-label">QUESTION 01</span>
-            <span class="difficulty-chip" id="difficulty-chip">STANDARD</span>
+            <div class="question-meta-tools">
+              <span class="difficulty-chip" id="difficulty-chip">STANDARD</span>
+              <span class="quiz-timer" id="quiz-timer" data-mode="answer" role="timer" aria-live="polite">
+                <span id="quiz-timer-label">回答</span>
+                <strong id="quiz-timer-value">10</strong><small>秒</small>
+              </span>
+            </div>
           </div>
           <pre class="question-code" id="question-text">問題を読み込んでいます...</pre>
           <div class="quiz-answers" id="answers"></div>
@@ -215,8 +221,8 @@
             </div>
           </div>
 
-          <button class="quiz-next-button" id="next-button" type="button" disabled>
-            <span id="next-label">次の問題へ</span><b aria-hidden="true">→</b>
+          <button class="quiz-next-button is-countdown" id="next-button" type="button" disabled aria-live="polite">
+            <span id="next-label">10秒間は回答を変更できます</span><b aria-hidden="true">●</b>
           </button>
         </section>
 
