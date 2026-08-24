@@ -24,19 +24,7 @@ const profileByCategory = {
   セキュリティ: { role: "TRUST ENGINEER", copy: "安心して使えるサービス体験を育てるクルー" }
 };
 
-const avatarColors = {
-  red: { body: "#ff5e66", glow: "rgba(255,94,102,.24)" },
-  blue: { body: "#4f9dff", glow: "rgba(79,157,255,.24)" },
-  yellow: { body: "#ffd75e", glow: "rgba(255,215,94,.24)" },
-  green: { body: "#51d27b", glow: "rgba(81,210,123,.24)" }
-};
-
-const avatarLabels = {
-  red: "赤",
-  blue: "青",
-  yellow: "黄",
-  green: "緑"
-};
+const DEFAULT_PLAYER_COLOR = "#51d27b";
 
 const rawQuestions = [
   { category: "フロントエンド", weight: 1, instruction: "「EngiFar」をページで最も重要な見出しとして表示します。空欄に入るHTMLタグ名を選んでください。", question: "<＿＿＿>EngiFar</＿＿＿>", choices: ["h1", "p", "span", "div"], answer: 0, explanation: "h1はページの中心となる見出しを表すHTMLタグです。" },
@@ -140,8 +128,9 @@ const elements = {
   profileCard: document.querySelector("#profile-card"),
   profileName: document.querySelector("#profile-name"),
   playerAvatarPreview: document.querySelector("#player-avatar-preview"),
-  selectedColorLabel: document.querySelector("#selected-color-label"),
-  avatarOptions: [...document.querySelectorAll(".avatar-option")],
+  playerColorInput: document.querySelector("#player-color"),
+  selectedColorCode: document.querySelector("#selected-color-code"),
+  playerCrewCharacter: document.querySelector("[data-player-slot]"),
   saveCardButton: document.querySelector("#save-card-button"),
   saveCardLabel: document.querySelector("#save-card-label"),
   cardBackButton: document.querySelector("#card-back-button"),
@@ -170,7 +159,7 @@ let latestMetrics = {
   categoryScores: Object.fromEntries(categories.map(({ name }) => [name, 0]))
 };
 let latestOutcome = { success: false, altitude: 0, travel: 0 };
-let selectedAvatar = "green";
+let selectedPlayerColor = DEFAULT_PLAYER_COLOR;
 
 const quizState = {
   current: 0,
@@ -183,6 +172,52 @@ const quizState = {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeHexColor(value) {
+  const color = String(value ?? "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(color)) {
+    const [red, green, blue] = color.slice(1);
+    return `#${red}${red}${green}${green}${blue}${blue}`.toLowerCase();
+  }
+  return DEFAULT_PLAYER_COLOR;
+}
+
+function colorChannels(color) {
+  const normalized = normalizeHexColor(color);
+  return [
+    Number.parseInt(normalized.slice(1, 3), 16),
+    Number.parseInt(normalized.slice(3, 5), 16),
+    Number.parseInt(normalized.slice(5, 7), 16)
+  ];
+}
+
+function colorWithAlpha(color, alpha) {
+  const [red, green, blue] = colorChannels(color);
+  return `rgba(${red},${green},${blue},${alpha})`;
+}
+
+function readableInkColor(color) {
+  const [red, green, blue] = colorChannels(color);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 255000;
+  return luminance > 0.58 ? "#07111f" : "#f3f8f5";
+}
+
+function createCrewAvatarDataUrl(color) {
+  const bodyColor = normalizeHexColor(color);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+    <ellipse cx="48" cy="88" rx="20" ry="4" fill="${bodyColor}" opacity=".24"/>
+    <path d="M48 26V16" fill="none" stroke="#92f0ed" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="48" cy="12" r="5" fill="#92f0ed"/>
+    <path d="M48 25C30 25 20 38 20 57c0 20 10 30 28 30s28-10 28-30c0-19-10-32-28-32Z" fill="${bodyColor}" stroke="#ffffff" stroke-opacity=".45" stroke-width="2"/>
+    <path d="M31 36c5-7 12-9 19-9" fill="none" stroke="#ffffff" stroke-opacity=".19" stroke-width="4" stroke-linecap="round"/>
+    <rect x="29" y="43" width="38" height="21" rx="10.5" fill="#effaf5"/>
+    <path d="M31 59c8 3 27 3 34 0" fill="none" stroke="#14343f" stroke-opacity=".1" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="40" cy="53.5" r="3.5" fill="#203945"/>
+    <circle cx="56" cy="53.5" r="3.5" fill="#203945"/>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function easeInOutCubic(value) {
@@ -252,21 +287,25 @@ function categoryShortName(category) {
 
 function syncPlayerIdentity() {
   const displayName = elements.profileName.value.trim() || "CREW MEMBER";
-  const avatarLabel = avatarLabels[selectedAvatar] ?? avatarLabels.green;
-  const avatarPath = `./assets/crew-${selectedAvatar}.svg`;
+  selectedPlayerColor = normalizeHexColor(selectedPlayerColor);
+  const colorCode = selectedPlayerColor.toUpperCase();
+  const avatarDataUrl = createCrewAvatarDataUrl(selectedPlayerColor);
 
-  elements.playerAvatarPreview.src = avatarPath;
-  elements.playerAvatarPreview.alt = `選択中の${avatarLabel}のクルー`;
-  elements.selectedColorLabel.textContent = avatarLabel;
-  elements.readyPlayerAvatar.src = avatarPath;
-  elements.readyPlayerAvatar.alt = `選択した${avatarLabel}のクルー`;
+  elements.app.style.setProperty("--player-color", selectedPlayerColor);
+  elements.app.style.setProperty("--player-color-ink", readableInkColor(selectedPlayerColor));
+  elements.playerColorInput.value = selectedPlayerColor;
+  elements.selectedColorCode.textContent = colorCode;
+  elements.playerAvatarPreview.src = avatarDataUrl;
+  elements.playerAvatarPreview.alt = `選択中の${colorCode}カラーのクルー`;
+  elements.readyPlayerAvatar.src = avatarDataUrl;
+  elements.readyPlayerAvatar.alt = `選択した${colorCode}カラーのクルー`;
   elements.readyPlayerName.textContent = displayName;
-  elements.profileButton.querySelector("img").src = avatarPath;
-  elements.cardCrewAvatar.src = avatarPath;
-  elements.cardCrewAvatar.alt = `${avatarLabel}のクルー`;
+  elements.profileButton.querySelector("img").src = avatarDataUrl;
+  elements.cardCrewAvatar.src = avatarDataUrl;
+  elements.cardCrewAvatar.alt = `${colorCode}カラーのクルー`;
   elements.cardCrewName.textContent = displayName;
   elements.crewCharacters.forEach((character) => {
-    character.classList.toggle("is-player", character.dataset.avatar === selectedAvatar);
+    character.classList.toggle("is-player", character === elements.playerCrewCharacter);
   });
 }
 
@@ -526,7 +565,7 @@ function prepareCrewBoarding() {
   const stageWidth = stageRect.width;
   const startOffsets = [-0.32, -0.18, 0.18, 0.32];
   const delayStep = prefersReducedMotion.matches ? 0.065 : 0.55;
-  const playerCharacter = elements.crewCharacters.find((character) => character.dataset.avatar === selectedAvatar);
+  const playerCharacter = elements.playerCrewCharacter;
   const boardingOrder = [
     ...elements.crewCharacters.filter((character) => character !== playerCharacter),
     playerCharacter
@@ -559,7 +598,7 @@ function prepareCrewBoarding() {
       : 900 + index * 550;
     const timer = window.setTimeout(() => {
       if (currentState !== "boarding") return;
-      elements.trajectoryLabel.textContent = `CREW ${index + 1}/4`;
+      elements.trajectoryLabel.textContent = `BOARDING ${(index + 1) * 25}%`;
       elements.telemetryProgress.style.width = `${(index + 1) * 25}%`;
     }, progressDelay);
     crewProgressTimers.push(timer);
@@ -681,14 +720,14 @@ function canvasRoundedRectPath(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function drawCrewAvatar(context, x, y, size, avatarName) {
-  const palette = avatarColors[avatarName] ?? avatarColors.green;
+function drawCrewAvatar(context, x, y, size, bodyColor) {
+  const normalizedColor = normalizeHexColor(bodyColor);
   const scale = size / 100;
   context.save();
   context.translate(x, y);
   context.scale(scale, scale);
 
-  context.fillStyle = palette.glow;
+  context.fillStyle = colorWithAlpha(normalizedColor, 0.24);
   context.beginPath();
   context.ellipse(50, 105, 31, 7, 0, 0, Math.PI * 2);
   context.fill();
@@ -706,7 +745,7 @@ function drawCrewAvatar(context, x, y, size, avatarName) {
   context.fill();
 
   canvasRoundedRectPath(context, 17, 18, 66, 81, 32);
-  context.fillStyle = palette.body;
+  context.fillStyle = normalizedColor;
   context.fill();
   context.strokeStyle = "rgba(255,255,255,.18)";
   context.lineWidth = 2;
@@ -748,11 +787,13 @@ function drawProfileCard() {
   const displayName = elements.profileName.value.trim() || "CREW MEMBER";
   const strongestCategory = getStrongestCategory();
   const profile = profileByCategory[strongestCategory];
-  const accent = avatarColors[selectedAvatar]?.body ?? avatarColors.green.body;
+  const accent = selectedPlayerColor;
   const values = categories.map(({ name }) => latestMetrics.categoryScores[name] ?? 0);
+  const avatarDataUrl = createCrewAvatarDataUrl(selectedPlayerColor);
+  const colorCode = selectedPlayerColor.toUpperCase();
 
-  elements.cardCrewAvatar.src = `./assets/crew-${selectedAvatar}.svg`;
-  elements.cardCrewAvatar.alt = `${avatarLabels[selectedAvatar] ?? avatarLabels.green}のクルー`;
+  elements.cardCrewAvatar.src = avatarDataUrl;
+  elements.cardCrewAvatar.alt = `${colorCode}カラーのクルー`;
   elements.cardCrewName.textContent = displayName;
   elements.cardCrewRole.textContent = profile.role;
 
@@ -786,7 +827,7 @@ function drawProfileCard() {
   context.font = "700 25px ui-monospace, monospace";
   context.fillText(`${strongestCategory} / ${profile.role}`, 82, 214);
 
-  drawCrewAvatar(context, 78, 260, 188, selectedAvatar);
+  drawCrewAvatar(context, 78, 260, 188, selectedPlayerColor);
 
   const cardMetrics = [
     ["OUTPUT", `${latestMetrics.power}%`],
@@ -1059,10 +1100,10 @@ function launch() {
   showPanel("flight");
   elements.launchButton.disabled = true;
   elements.missionStatus.textContent = "BOARDING";
-  elements.trajectoryLabel.textContent = "CREW 0/4";
+  elements.trajectoryLabel.textContent = "BOARDING 0%";
   elements.engineLabel.textContent = "READY";
   elements.flightTitle.textContent = "クルー搭乗中";
-  elements.flightDescription.innerHTML = "赤・青・黄・緑のクルーが順番に乗り込みます。<br>まもなく打ち上げです。";
+  elements.flightDescription.innerHTML = "カラフルな仲間と、あなたのオリジナルカラーのクルーが乗り込みます。<br>まもなく打ち上げです。";
   elements.rocket.style.opacity = "1";
   elements.telemetryProgress.style.width = "0%";
   setAltitude(0);
@@ -1115,16 +1156,9 @@ elements.profileName.addEventListener("keydown", (event) => {
   elements.profileName.blur();
   startQuiz();
 });
-elements.avatarOptions.forEach((option) => {
-  option.addEventListener("click", () => {
-    selectedAvatar = option.dataset.avatar;
-    elements.avatarOptions.forEach((item) => {
-      const isSelected = item === option;
-      item.classList.toggle("is-selected", isSelected);
-      item.setAttribute("aria-pressed", String(isSelected));
-    });
-    syncPlayerIdentity();
-  });
+elements.playerColorInput.addEventListener("input", (event) => {
+  selectedPlayerColor = event.currentTarget.value;
+  syncPlayerIdentity();
 });
 
 createEffectPieces();
